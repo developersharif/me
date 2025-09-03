@@ -1,0 +1,33 @@
+{
+  "colors": {
+    "accent": "#3b82f6",
+    "secondary": "#06b6d4",
+    "sideButtonBg": "rgba(0, 0, 0, 0.4)",
+    "sideButtonBorder": "rgba(255, 255, 255, 0.2)",
+    "glassBg": "rgba(255, 255, 255, 0.05)",
+    "glassBorder": "rgba(255, 255, 255, 0.1)",
+    "text": "rgba(255,255,255,0.9)"
+  },
+  "backgroundGradient": {
+    "from": "rgba(30, 41, 59, 0.9)",
+    "via": "rgba(51, 65, 85, 0.9)",
+    "to": "rgba(30, 41, 59, 0.9)"
+  },
+  "indicatorGradient": {
+    "from": "rgba(59, 130, 246, 0.95)",
+    "to": "rgba(6, 182, 212, 0.95)",
+    "shadow": "rgba(59, 130, 246, 0.35)"
+  },
+  "progressGradient": {
+    "from": "#3b82f6",
+    "to": "#06b6d4"
+  },
+  "radii": {
+    "container": "12px",
+    "button": "9999px"
+  },
+  "blur": {
+    "background": 10,
+    "glass": 5
+  }
+}
