@@ -1209,3 +1209,147 @@
     transform: scale(1.02);
   }
 }
+
+/* Desktop cursor magic effect */
+.desktop-cursor-magic-effect {
+  pointer-events: none;
+  position: fixed;
+  z-index: 9999;
+}
+
+.desktop-magic-particle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 16px;
+  color: #9333ea;
+  filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8));
+  pointer-events: none;
+}
+
+@keyframes desktopMagicParticle {
+  0% {
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: translate(-50%, -50%) scale(1.2) rotate(90deg);
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(
+        calc(-50% + var(--distance) * cos(var(--angle))),
+        calc(-50% + var(--distance) * sin(var(--angle)))
+      )
+      scale(1) rotate(180deg);
+    opacity: 0.7;
+  }
+  75% {
+    transform: translate(
+        calc(-50% + var(--distance) * 1.5 * cos(var(--angle))),
+        calc(-50% + var(--distance) * 1.5 * sin(var(--angle)))
+      )
+      scale(0.8) rotate(270deg);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(
+        calc(-50% + var(--distance) * 2 * cos(var(--angle))),
+        calc(-50% + var(--distance) * 2 * sin(var(--angle)))
+      )
+      scale(0.2) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Improved mobile/desktop responsive magic effects */
+@media (hover: none) and (pointer: coarse) {
+  /* Mobile touch devices - ensure magic effects are visible */
+  .magical-cursor-trail {
+    display: none !important;
+  }
+
+  .magical-portal {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 25px rgba(147, 51, 234, 0.5));
+  }
+
+  .magical-burst-particle-enhanced {
+    animation-duration: 2.5s;
+    font-size: 18px;
+    /* Ensure mobile burst effects are more visible */
+    opacity: 1 !important;
+    transform: scale(1.1);
+  }
+
+  .magical-explosion {
+    /* Enhanced mobile explosion effects */
+    animation-duration: 1.5s;
+    transform: scale(1.1);
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Desktop devices with precise pointers */
+  .magical-cursor-trail {
+    display: block;
+    transition: all 0.08s ease-out;
+  }
+
+  .cursor-particle {
+    font-size: 14px;
+    animation-duration: 1.8s;
+  }
+
+  .magical-portal:hover {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 45px rgba(147, 51, 234, 0.7));
+  }
+
+  .magical-burst-particle-enhanced {
+    /* Enhanced desktop burst effects */
+    animation-duration: 3s;
+    font-size: 22px;
+  }
+}
+
+/* Fallback for all devices - ensure effects always work */
+.magical-burst-particle-enhanced {
+  position: absolute !important;
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 1000;
+  animation: magical-burst-enhanced 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  filter: drop-shadow(0 0 10px rgba(147, 51, 234, 0.8));
+  /* Force hardware acceleration */
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+.magical-explosion {
+  /* Ensure explosion effects always trigger */
+  animation: magical-explosion-enhanced 1.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  transform-origin: center;
+  will-change: transform, filter;
+}
+
+.magical-screen-shake {
+  /* Ensure screen shake always works */
+  animation: screen-shake 0.6s ease-in-out !important;
+}
+
+/* Enhanced cursor tracking for better precision */
+.magical-cursor-trail {
+  will-change: transform, opacity;
+  transition: all 0.08s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 9999;
+}
+
+.cursor-particle {
+  display: block;
+  animation: cursor-sparkle 2s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8));
+  will-change: transform, opacity;
+}

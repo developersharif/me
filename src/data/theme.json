@@ -8,6 +8,14 @@
     "glassBorder": "rgba(255, 255, 255, 0.1)",
     "text": "rgba(255,255,255,0.9)"
   },
+  "magicEffects": {
+    "desktopCursorEffectDuration": 5000,
+    "mobileEffectEnabled": true,
+    "desktopEffectEnabled": true,
+    "cursorTrailIntensity": 1.2,
+    "particleBurstCount": 12,
+    "alwaysShowMainEffects": true
+  },
   "backgroundGradient": {
     "from": "rgba(30, 41, 59, 0.9)",
     "via": "rgba(51, 65, 85, 0.9)",

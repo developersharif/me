@@ -50,8 +50,9 @@
           <SoundToggle :enabled="soundEnabled" @toggle="toggleSound" />
         </div>
 
-        <!-- Magical Cursor Effect -->
+        <!-- Magical Cursor Effect (Desktop Only) -->
         <div 
+          v-if="!isMobile"
           ref="cursorEffect" 
           class="magical-cursor-trail pointer-events-none fixed z-50"
           :style="cursorStyle"
@@ -79,12 +80,13 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import CoverHeader from '../components/cover/CoverHeader.vue';
 import CoverPortal from '../components/cover/CoverPortal.vue';
 // Removed CoverCtaText and CoverHint per request
 import SoundToggle from '../components/cover/SoundToggle.vue';
 import { useMagicSound } from '../composables/useMagicSound';
+import themeConfig from '../data/theme.json';
 
 interface CoverData {
   symbol: string;
@@ -124,8 +126,16 @@ const magicalSymbols = ref(['✦', '⟐', '⬟', '◊', '⬢', '⟡', '◈', '�
 const sparkleSymbols = ref(['✨', '⭐', '💫', '🌟', '✧', '⋆', '✦', '✩']);
 const isExploding = ref(false);
 
-// Cursor tracking for magical trail
+// Device detection for proper magic effects
+const isMobile = ref(false);
+const isTouch = ref(false);
+
+// Desktop cursor effect state
+const desktopCursorEffect = ref(null);
+const desktopEffectActive = ref(false);
 const cursorPosition = ref({ x: 0, y: 0 });
+
+// Enhanced cursor tracking for magical trail
 const cursorStyle = ref({
   left: '0px',
   top: '0px',
@@ -136,6 +146,15 @@ const cursorStyle = ref({
 const particleIntensity = ref(1);
 const magicLevel = ref(0);
 
+// Magic configuration from theme
+const magicConfig = computed(() => themeConfig.magicEffects || {
+  desktopCursorEffectDuration: 5000,
+  mobileEffectEnabled: true,
+  desktopEffectEnabled: true,
+  cursorTrailIntensity: 1.2,
+  particleBurstCount: 12
+});
+
 // Audio via composable (keep interaction sounds only; no page-change sound)
 const { audioContext, soundEnabled, initSoundPreference, initializeAudio, toggleSound, createMagicalTone, playMagicalChord, playSparkleSound, playExplosionSound } = useMagicSound();
 
@@ -143,14 +162,81 @@ const { audioContext, soundEnabled, initSoundPreference, initializeAudio, toggle
 const playSymbolHover = (index: number) => { if (!soundEnabled.value) return; createMagicalTone(440 + index * 50, 0.4, 'hover'); };
 const playSparkleHover = (index: number) => { if (!soundEnabled.value) return; createMagicalTone(800 + index * 30, 0.2, 'hover'); };
 
-// Enhanced cursor tracking
+// Enhanced cursor tracking with better precision
 const updateCursorPosition = (event: MouseEvent) => {
-  cursorPosition.value = { x: event.clientX, y: event.clientY };
-  cursorStyle.value = {
-    left: event.clientX - 10 + 'px',
-    top: event.clientY - 10 + 'px',
-    opacity: isMagicActive.value ? '1' : '0.5'
+  const rect = document.documentElement.getBoundingClientRect();
+  cursorPosition.value = { 
+    x: event.clientX - rect.left, 
+    y: event.clientY - rect.top 
   };
+  
+  cursorStyle.value = {
+    left: (event.clientX - 10) + 'px',
+    top: (event.clientY - 10) + 'px',
+    opacity: isMagicActive.value ? String(magicConfig.value.cursorTrailIntensity) : '0.5'
+  };
+};
+
+// Device detection function with better window resize handling
+const detectDevice = () => {
+  const newIsMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const newIsTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  
+  // Update device state
+  const deviceChanged = isMobile.value !== newIsMobile;
+  isMobile.value = newIsMobile;
+  isTouch.value = newIsTouch;
+  
+  // If device type changed, update cursor tracking accordingly
+  if (deviceChanged) {
+    if (newIsMobile) {
+      // Remove cursor tracking for mobile
+      document.removeEventListener('mousemove', updateCursorPosition);
+    } else {
+      // Add cursor tracking for desktop
+      document.addEventListener('mousemove', updateCursorPosition);
+    }
+  }
+};
+
+// Create desktop cursor magic effect
+const createDesktopCursorEffect = (x: number, y: number) => {
+  if (!magicConfig.value.desktopEffectEnabled || isMobile.value) return;
+  
+  const container = document.body;
+  const effectContainer = document.createElement('div');
+  effectContainer.className = 'desktop-cursor-magic-effect';
+  effectContainer.style.position = 'fixed';
+  effectContainer.style.left = x + 'px';
+  effectContainer.style.top = y + 'px';
+  effectContainer.style.pointerEvents = 'none';
+  effectContainer.style.zIndex = '9999';
+  effectContainer.style.transform = 'translate(-50%, -50%)';
+  
+  // Create multiple magic particles
+  for (let i = 0; i < magicConfig.value.particleBurstCount; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'desktop-magic-particle';
+    particle.innerHTML = sparkleSymbols.value[i % sparkleSymbols.value.length];
+    particle.style.position = 'absolute';
+    particle.style.fontSize = '16px';
+    particle.style.color = '#9333ea';
+    particle.style.filter = 'drop-shadow(0 0 8px rgba(147, 51, 234, 0.8))';
+    particle.style.animation = `desktopMagicParticle ${magicConfig.value.desktopCursorEffectDuration}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
+    particle.style.setProperty('--angle', (i * 30) + 'deg');
+    particle.style.setProperty('--distance', (Math.random() * 100 + 50) + 'px');
+    
+    effectContainer.appendChild(particle);
+  }
+  
+  container.appendChild(effectContainer);
+  
+  // Remove effect after duration
+  setTimeout(() => {
+    if (effectContainer.parentNode) {
+      effectContainer.parentNode.removeChild(effectContainer);
+    }
+  }, magicConfig.value.desktopCursorEffectDuration);
 };
 
 // Progressive magic enhancement
@@ -197,12 +283,25 @@ const triggerMagicalEffect = () => {
   
   isExploding.value = true;
   
+  // Re-detect device on each click to handle window resizing
+  detectDevice();
+  
+  // Always show the main magical burst effects
+  // Device-specific effects are additive, not exclusive
+  const showMainEffects = true;
+  const showDesktopCursorEffect = !isMobile.value && magicConfig.value.desktopEffectEnabled;
+  
   // Play dramatic explosion sound
   playExplosionSound();
   
+  // Create desktop cursor effect at current cursor position (desktop only)
+  if (showDesktopCursorEffect) {
+    createDesktopCursorEffect(cursorPosition.value.x, cursorPosition.value.y);
+  }
+  
   // Enhanced magical explosion with better performance
   const portal = document.querySelector('.magical-portal');
-  if (portal) {
+  if (portal && showMainEffects) {
     // Stronger effect: portal blast + page shake
     portal.classList.add('magical-explosion');
     document.body.classList.add('magical-screen-shake');
@@ -213,15 +312,25 @@ const triggerMagicalEffect = () => {
       document.body.classList.remove('magical-screen-shake');
       isExploding.value = false;
     }, 1200);
+  } else {
+    // Fallback in case portal is not found
+    setTimeout(() => {
+      isExploding.value = false;
+    }, 1200);
   }
   
-  // Create optimized magical burst
-  createEnhancedMagicalBurst(portal as HTMLElement | null);
+  // Create optimized magical burst (always show)
+  if (showMainEffects) {
+    createEnhancedMagicalBurst(portal as HTMLElement | null);
+  }
 };
 
 const createEnhancedMagicalBurst = (anchor?: HTMLElement | null) => {
   const container = anchor || document.querySelector('.magical-cta');
-  if (!container) return;
+  if (!container) {
+    console.warn('No container found for magical burst effect');
+    return;
+  }
   
   // Create document fragment for better performance
   const fragment = document.createDocumentFragment();
@@ -236,25 +345,29 @@ const createEnhancedMagicalBurst = (anchor?: HTMLElement | null) => {
         element.className = 'magical-burst-particle-enhanced';
         
         // Optimized positioning with CSS custom properties
-  // Emit from center of the portal
-  element.style.setProperty('--start-x', '50%');
-  element.style.setProperty('--start-y', '50%');
+        // Emit from center of the portal
+        element.style.setProperty('--start-x', '50%');
+        element.style.setProperty('--start-y', '50%');
         element.style.setProperty('--end-x', (Math.random() - 0.5) * 600 + 'px');
         element.style.setProperty('--end-y', (Math.random() - 0.5) * 600 + 'px');
         element.style.setProperty('--rotation', Math.random() * 1080 + 'deg');
-  element.style.setProperty('--scale', (Math.random() * 1.8 + 0.6).toString());
-  element.style.setProperty('--hue', (Math.random() * 90 + 240).toString()); // broader purple-blue range
+        element.style.setProperty('--scale', (Math.random() * 1.8 + 0.6).toString());
+        element.style.setProperty('--hue', (Math.random() * 90 + 240).toString()); // broader purple-blue range
         
-        fragment.appendChild(element);
+        // Force immediate visibility
+        element.style.position = 'absolute';
+        element.style.zIndex = '1000';
+        element.style.pointerEvents = 'none';
+        
+        container.appendChild(element);
         
         // Cleanup with proper memory management
         setTimeout(() => {
           if (element.parentNode) {
             element.parentNode.removeChild(element);
           }
-        }, 3000);
+        }, 3500); // Slightly longer to ensure animation completes
       }
-      container.appendChild(fragment);
     }, wave * 200);
   }
 };
@@ -263,8 +376,16 @@ onMounted(() => {
   initSoundPreference();
   initializeAudio();
   
-  // Add cursor tracking for magical trail
-  document.addEventListener('mousemove', updateCursorPosition);
+  // Detect device type for proper magic effects
+  detectDevice();
+  
+  // Add cursor tracking for magical trail (desktop only)
+  if (!isMobile.value) {
+    document.addEventListener('mousemove', updateCursorPosition);
+  }
+  
+  // Handle window resize for device detection
+  window.addEventListener('resize', detectDevice);
   
   // Add some initial sparkle to the crystal
   setTimeout(() => {
@@ -293,13 +414,14 @@ onMounted(() => {
     document.removeEventListener('mousemove', updateCursorPosition);
     document.removeEventListener('click', enableAudio);
     document.removeEventListener('touchstart', enableAudio);
+    window.removeEventListener('resize', detectDevice);
   };
 });
 
 // Play soft transition sound when navigating away from cover page
 onBeforeUnmount(() => {
   if (soundEnabled.value) {
-    createRandomPageSound(1); // Transitioning from cover (0) to about (1)
+    createMagicalTone(330, 0.5, 'hover'); // Soft transition sound
   }
 });
 </script>
