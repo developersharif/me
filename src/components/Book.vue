@@ -450,7 +450,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
         zIndex: 30
       });
 
-      const tl = G.timeline({
+  const tl = G.timeline({
         onComplete: () => {
           currentPageIndex.value = targetIndex;
           isFlipping.value = false;
@@ -463,6 +463,8 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           resolve();
         }
       });
+  // Make the quick jump snappier but still smooth
+  tl.timeScale(1.25);
 
       // Quick flip - STRICTLY anchored to coil binding, NO horizontal movement
       if (direction === 'forward') {
@@ -472,7 +474,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: 0.4,
           // NO x translation - stay at spiral binding
           duration: 0.06,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
         })
         .to(flipPage, {
@@ -481,7 +483,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: 0.2,
           // NO horizontal drift
           duration: 0.08,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
           filter: 'brightness(1.01) contrast(1.015)'
         })
@@ -491,7 +493,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: 0,
           // Perfect binding anchor
           duration: 0.06,
-          ease: 'elastic.out(1.2, 0.7)',
+          ease: 'power3.out',
           boxShadow: 'none',
           filter: 'brightness(1) contrast(1)'
         });
@@ -508,7 +510,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: -0.2,
           // Stay at spiral binding
           duration: 0.08,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
           filter: 'brightness(1.01) contrast(1.015)'
         })
@@ -518,7 +520,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: -0.4,
           // NO horizontal movement
           duration: 0.06,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
         })
         .to(flipPage, {
@@ -527,7 +529,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           rotateZ: 0,
           // Anchored to binding
           duration: 0.06,
-          ease: 'elastic.out(1.2, 0.7)',
+          ease: 'power3.out',
           boxShadow: 'none',
           filter: 'brightness(1) contrast(1)'
         });
@@ -599,7 +601,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
       if (edge) G.set(edge, { opacity: 0 });
 
       // Create realistic hand-flipped notebook timeline
-      const tl = G.timeline({
+  const tl = G.timeline({
         onComplete: () => {
           // Update page index smoothly
           currentPageIndex.value = targetIndex;
@@ -618,6 +620,8 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           resolve();
         }
       });
+  // Increase the overall speed a bit while keeping curves smooth
+  tl.timeScale(1.35);
 
       // Realistic hand-flipped page physics - STRICTLY anchored to coil binding
       if (direction === 'forward') {
@@ -628,7 +632,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0.3, // Tiny twist
           // CRITICAL: NO x, y, z translations - stay anchored to spiral binding
           duration: 0.12,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
         })
         .to(flipPage, {
@@ -637,7 +641,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0.5, // Slight twist continues
           // NO position changes - pure rotation around binding
           duration: 0.18,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
           filter: 'brightness(1.01) contrast(1.02)'
         })
@@ -647,7 +651,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0.2, // Twist reducing
           // Stay perfectly anchored
           duration: 0.15,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
           filter: 'brightness(1.015) contrast(1.01)'
         })
@@ -657,7 +661,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0,
           // NO drift from binding axis
           duration: 0.08,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
         })
         .to(flipPage, {
@@ -666,7 +670,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: -0.2, // Slight counter-twist
           // Maintain binding constraint
           duration: 0.12,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
         })
         .to(flipPage, {
@@ -675,7 +679,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0,
           // Perfect anchor at spiral binding
           duration: 0.15,
-          ease: 'elastic.out(1, 0.8)',
+          ease: 'power3.out',
           boxShadow: 'none',
           filter: 'brightness(1) contrast(1)'
         });
@@ -693,7 +697,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0.2,
           // Stay anchored to binding
           duration: 0.15,
-          ease: 'elastic.out(1, 0.8)',
+          ease: 'power3.out',
           boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
         })
         .to(flipPage, {
@@ -702,7 +706,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: -0.2,
           // NO horizontal movement
           duration: 0.12,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
         })
         .to(flipPage, {
@@ -711,7 +715,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: 0,
           // Binding-anchored only
           duration: 0.08,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
           filter: 'brightness(1.015) contrast(1.01)'
         })
@@ -721,7 +725,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: -0.2,
           // NO drift from spiral binding
           duration: 0.15,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
           filter: 'brightness(1.01) contrast(1.02)'
         })
@@ -731,7 +735,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: -0.5,
           // Stay anchored to binding
           duration: 0.18,
-          ease: 'power1.inOut',
+          ease: 'sine.inOut',
           boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
         })
         .to(flipPage, {
@@ -740,7 +744,7 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           rotateZ: -0.3,
           // Perfect binding anchor
           duration: 0.12,
-          ease: 'power2.out',
+          ease: 'power3.out',
           boxShadow: 'none',
           filter: 'brightness(1) contrast(1)'
         });
