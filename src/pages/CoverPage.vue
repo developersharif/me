@@ -1,7 +1,17 @@
 <template>
-  <section class="h-full flex flex-col items-center justify-center text-center gap-6 md:gap-5 relative overflow-hidden">
-    <!-- Ambient background effect -->
-    <div class="absolute inset-0 bg-gradient-to-br from-indigo-900/20 via-purple-900/20 to-slate-900/20"></div>
+  <section class="cover-responsive h-full flex flex-col items-center justify-center text-center gap-6 md:gap-5 relative overflow-hidden py-6 md:py-8">
+    <!-- Professional background photo with overlays -->
+    <div class="absolute inset-0 -z-10">
+      <img 
+        v-if="data.background"
+        :src="data.background"
+        alt="Workstation background"
+        class="w-full h-full object-cover opacity-30 md:opacity-40 scale-105"
+      />
+      <div class="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-indigo-950/50 to-purple-950/50"></div>
+  <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(147,51,234,.15),transparent_60%)]"></div>
+  <div class="absolute inset-0 pointer-events-none cover-noise"></div>
+    </div>
     
     <!-- Floating particles -->
     <div class="absolute inset-0">
@@ -17,7 +27,7 @@
     </div>
     
     <!-- Main content -->
-    <div class="relative z-10">
+  <div class="relative z-10 w-full max-w-3xl mx-auto px-4 md:px-6 cover-fit">
       <CoverHeader
         :symbol="data.symbol"
         :titlePrefix="data.titlePrefix"
@@ -62,11 +72,6 @@
           @sparkle-hover="playSparkleHover"
         />
         
-        <!-- Premium CTA Text with advanced effects -->
-    <CoverCtaText :text="data.cta" :activated="isMagicActive" />
-
-        <!-- Enhanced mystical hint -->
-    <CoverHint :text="data.hint" />
       </div>
     </div>
   </section>
@@ -77,8 +82,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import CoverHeader from '../components/cover/CoverHeader.vue';
 import CoverPortal from '../components/cover/CoverPortal.vue';
-import CoverCtaText from '../components/cover/CoverCtaText.vue';
-import CoverHint from '../components/cover/CoverHint.vue';
+// Removed CoverCtaText and CoverHint per request
 import SoundToggle from '../components/cover/SoundToggle.vue';
 import { useMagicSound } from '../composables/useMagicSound';
 
@@ -88,8 +92,6 @@ interface CoverData {
   name: string;
   tagline: string;
   subtitle: string;
-  cta: string;
-  hint: string;
 }
 
 const props = defineProps<{ data?: CoverData }>();
@@ -99,8 +101,6 @@ const fallback: CoverData = {
   name: '[Your Name]',
   tagline: 'Fullstack Alchemist',
   subtitle: 'A chronicle of digital craftsmanship, where code becomes art and innovation meets imagination.',
-  cta: 'Touch the rune to begin',
-  hint: 'Swipe or press →'
 };
 const data = props.data ?? fallback;
 if (!props.data) {
@@ -198,9 +198,8 @@ const triggerMagicalEffect = () => {
   // Enhanced magical explosion with better performance
   const portal = document.querySelector('.magical-portal');
   if (portal) {
+    // Stronger effect: portal blast + page shake
     portal.classList.add('magical-explosion');
-    
-    // Add screen shake effect
     document.body.classList.add('magical-screen-shake');
     
     // Remove classes after animation with proper cleanup
@@ -212,11 +211,11 @@ const triggerMagicalEffect = () => {
   }
   
   // Create optimized magical burst
-  createEnhancedMagicalBurst();
+  createEnhancedMagicalBurst(portal as HTMLElement | null);
 };
 
-const createEnhancedMagicalBurst = () => {
-  const container = document.querySelector('.magical-cta');
+const createEnhancedMagicalBurst = (anchor?: HTMLElement | null) => {
+  const container = anchor || document.querySelector('.magical-cta');
   if (!container) return;
   
   // Create document fragment for better performance
@@ -232,13 +231,14 @@ const createEnhancedMagicalBurst = () => {
         element.className = 'magical-burst-particle-enhanced';
         
         // Optimized positioning with CSS custom properties
-        element.style.setProperty('--start-x', '50%');
-        element.style.setProperty('--start-y', '50%');
+  // Emit from center of the portal
+  element.style.setProperty('--start-x', '50%');
+  element.style.setProperty('--start-y', '50%');
         element.style.setProperty('--end-x', (Math.random() - 0.5) * 600 + 'px');
         element.style.setProperty('--end-y', (Math.random() - 0.5) * 600 + 'px');
         element.style.setProperty('--rotation', Math.random() * 1080 + 'deg');
-        element.style.setProperty('--scale', (Math.random() * 1.5 + 0.5).toString());
-        element.style.setProperty('--hue', (Math.random() * 60 + 250).toString()); // Purple to blue range
+  element.style.setProperty('--scale', (Math.random() * 1.8 + 0.6).toString());
+  element.style.setProperty('--hue', (Math.random() * 90 + 240).toString()); // broader purple-blue range
         
         fragment.appendChild(element);
         

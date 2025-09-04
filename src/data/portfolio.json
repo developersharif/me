@@ -14,6 +14,8 @@
 		"name": "Sharif",
 		"tagline": "Fullstack Alchemist",
 		"subtitle": "A chronicle of digital craftsmanship, where code becomes art and innovation meets imagination.",
+		"avatar": "/avatar.svg",
+		"background": "../../public/assets/images/my-workspace.jpeg",
 		"cta": "Touch the rune to begin",
 		"hint": "Swipe or press →"
 	},

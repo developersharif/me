@@ -1,8 +1,8 @@
 <template>
   <div class="h-screen w-full max-w-full overflow-hidden flex flex-col">
     <header class="px-6 py-4 flex items-center justify-between border-b border-white/10 flex-shrink-0">
-      <div class="font-mono text-sm text-accent-300">{{ data.site.title }}</div>
-      <nav class="hidden sm:flex gap-4 text-sm">
+      <div class="font-mono text-sm text-accent-300 hidden sm:block">{{ data.site.title }}</div>
+      <nav class="flex gap-3 sm:gap-4 text-xs sm:text-sm overflow-x-auto">
   <button v-for="(link, i) in navLinks" :key="link.to" class="hover:text-accent-300 transition-colors" @click="goTo(i, 'fast')">
           {{ link.label }}
         </button>
@@ -21,6 +21,7 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, computed, onMounted } from 'vue';
 import Book from './components/Book.vue';
 

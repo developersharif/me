@@ -1,5 +1,5 @@
 <template>
-  <div class="relative magical-portal" @mouseenter="$emit('enter')" @mouseleave="$emit('leave')">
+  <div class="relative magical-portal cursor-pointer" @mouseenter="$emit('enter')" @mouseleave="$emit('leave')" @click="$emit('click')">
     <div class="absolute inset-0 w-36 h-36 magical-ring-system">
       <div class="absolute inset-0 rounded-full magical-ring-outer">
         <div class="absolute inset-1 rounded-full magical-ring-middle"></div>
@@ -15,7 +15,7 @@
       </div>
     </div>
 
-    <div class="relative w-36 h-36 cursor-pointer magical-crystal-container" @click="$emit('click')">
+  <div class="relative w-36 h-36 magical-crystal-container">
       <div class="absolute inset-2 rounded-full magical-aura"></div>
       <div class="absolute inset-4 rounded-full magical-core"></div>
       <div class="absolute inset-6 rounded-full magical-crystal">
@@ -49,7 +49,7 @@
         <div class="particle-trail"></div>
       </div>
     </div>
-    <div class="absolute inset-0 magical-vortex"></div>
+  <div class="absolute inset-0 magical-vortex pointer-events-none"></div>
   </div>
 </template>
 

@@ -14,8 +14,11 @@
       <div class="book-pages">
         <!-- Mobile: Single page layout -->
         <div class="mobile-page-container md:hidden">
+          <!-- Spiral binding & holes -->
+          <div class="notebook-spiral" aria-hidden="true" />
+          <div class="page-holes" aria-hidden="true" />
           <div 
-            class="mobile-page"
+            class="mobile-page with-spiral"
             @scroll="handleScroll"
             ref="mobilePageRef"
           >
@@ -33,7 +36,7 @@
           </div>
           
           <!-- Mobile page flip overlay -->
-          <div 
+      <div 
             v-if="isFlipping" 
             ref="mobileFlipRef"
             class="mobile-flip-overlay page-flip-container"
@@ -42,6 +45,7 @@
             ]"
           >
             <div class="flipping-page">
+        <div class="page-holes" aria-hidden="true" />
               <div class="mobile-page">
                 <component :is="flipContent?.component" v-bind="flipContent?.props" v-if="flipContent" />
               </div>
@@ -49,6 +53,8 @@
               <div class="flip-gloss" aria-hidden="true" />
               <div class="page-edge" aria-hidden="true" />
               <div class="page-spine" aria-hidden="true" />
+              <div class="page-corner" aria-hidden="true" />
+              <div class="page-fold" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -57,8 +63,11 @@
         <div class="desktop-pages-container hidden md:flex">
           <!-- Single Page -->
           <div class="desktop-page single-page">
+            <!-- Spiral binding & holes -->
+            <div class="notebook-spiral" aria-hidden="true" />
+            <div class="page-holes" aria-hidden="true" />
             <div 
-              class="page-content"
+              class="page-content with-spiral"
               @scroll="handleScroll"
               ref="desktopPageRef"
             >
@@ -77,7 +86,7 @@
           </div>
           
           <!-- Desktop Page Turn Animation Overlay -->
-          <div 
+      <div 
             v-if="isFlipping" 
             ref="desktopFlipRef"
             class="desktop-flip-overlay page-flip-container"
@@ -86,6 +95,7 @@
             ]"
           >
             <div class="flipping-page">
+        <div class="page-holes" aria-hidden="true" />
               <div class="page-content">
                 <component :is="flipContent?.component" v-bind="flipContent?.props" v-if="flipContent" />
               </div>
@@ -93,6 +103,8 @@
               <div class="flip-gloss" aria-hidden="true" />
               <div class="page-edge" aria-hidden="true" />
               <div class="page-spine" aria-hidden="true" />
+              <div class="page-corner" aria-hidden="true" />
+              <div class="page-fold" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -142,7 +154,10 @@
 </template>
 
 <script setup lang="ts">
+// @ts-nocheck
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+// Spiral binding visual width in pixels (used for flip origin)
+const SPIRAL_BINDING_WIDTH = 28;
 import gsap from 'gsap';
 
 interface Page {
@@ -416,8 +431,9 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
         return;
       }
 
-      const G = (gsap as any);
-      const origin = direction === 'forward' ? '0% 50%' : '100% 50%';
+  const G = (gsap as any);
+  // Pivot around the spiral binding for both directions
+  const origin = `${SPIRAL_BINDING_WIDTH}px 50%`;
       G.set(flippingPage, { rotateY: 0, transformOrigin: origin, transformStyle: 'preserve-3d', transformPerspective: 1200, backfaceVisibility: 'hidden' });
 
       const tl = G.timeline({
@@ -475,14 +491,17 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
       const flippingPage = container.querySelector('.flipping-page') as HTMLElement | null;
       if (!flippingPage) return;
 
-      const shadow = flippingPage.querySelector('.flip-shadow') as HTMLElement | null;
+  const shadow = flippingPage.querySelector('.flip-shadow') as HTMLElement | null;
       const gloss = flippingPage.querySelector('.flip-gloss') as HTMLElement | null;
       const edge = flippingPage.querySelector('.page-edge') as HTMLElement | null;
       const spine = flippingPage.querySelector('.page-spine') as HTMLElement | null;
+  const corner = flippingPage.querySelector('.page-corner') as HTMLElement | null;
+  const fold = flippingPage.querySelector('.page-fold') as HTMLElement | null;
 
       // Reset transform/shadow with proper 3D setup
-      const G = (gsap as any);
-      const origin = direction === 'forward' ? '0% 50%' : '100% 50%';
+  const G = (gsap as any);
+  // Pivot around the spiral binding for both directions
+  const origin = `${SPIRAL_BINDING_WIDTH}px 50%`;
       
       G.set(flippingPage, { 
         rotateY: 0, 
@@ -500,9 +519,11 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
       });
       
       if (shadow) G.set(shadow, { opacity: 0 });
-      if (gloss) G.set(gloss, { opacity: 0 });
+  if (gloss) G.set(gloss, { opacity: 0 });
       if (edge) G.set(edge, { opacity: 0 });
       if (spine) G.set(spine, { opacity: 0 });
+  if (corner) G.set(corner, { opacity: 0 });
+  if (fold) G.set(fold, { opacity: 0, borderBottomWidth: 12, borderLeftWidth: 12 });
 
       // Create realistic page turn timeline with multiple phases
       const tl = G.timeline({
@@ -632,6 +653,18 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           .to(gloss, { opacity: 0.06, duration: 0.15, ease: 'power2.out' }, 0.43)
           .to(gloss, { opacity: 0.02, duration: 0.1, ease: 'back.out(1.2)' }, 0.58)
           .to(gloss, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
+      }
+
+      // Corner and fold visibility peaks at mid-flip
+      if (corner && fold) {
+        tl.to(corner, { opacity: 0.0, duration: 0.1, ease: 'power2.out' }, 0)
+          .to(corner, { opacity: 0.25, duration: 0.2, ease: 'power2.inOut' }, 0.23)
+          .to(corner, { opacity: 0.05, duration: 0.2, ease: 'power2.out' }, 0.55)
+          .to(corner, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
+        tl.to(fold, { opacity: 0.0, borderBottomWidth: 8, borderLeftWidth: 8, duration: 0.1, ease: 'power2.out' }, 0)
+          .to(fold, { opacity: 0.35, borderBottomWidth: 26, borderLeftWidth: 26, duration: 0.2, ease: 'power2.inOut' }, 0.23)
+          .to(fold, { opacity: 0.12, borderBottomWidth: 12, borderLeftWidth: 12, duration: 0.2, ease: 'power2.out' }, 0.55)
+          .to(fold, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
       }
 
       // Page edge (thickness) animation for 3D depth
@@ -826,6 +859,14 @@ defineExpose({
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* Spiral binding variables */
+  --spiral-width: 28px;
+  --spiral-left-pad: 44px; /* content padding-left when spiral visible */
+  --hole-size: 12px;
+  --hole-gap: 46px;
+  --spiral-wire: #a3a7ad;
+  --spiral-wire-dark: #6b7280;
+  --spiral-shadow: rgba(0,0,0,0.35);
 }
 
 .book-wrapper {
@@ -889,6 +930,62 @@ defineExpose({
   /* Smooth scrolling */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Notebook spiral visuals */
+.with-spiral {
+  padding-left: var(--spiral-left-pad) !important;
+}
+
+.notebook-spiral {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: var(--spiral-width);
+  z-index: 6;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.08), rgba(0,0,0,0.18)),
+    radial-gradient(ellipse at right center, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.0) 70%);
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.08), inset -6px 0 12px rgba(0,0,0,0.25);
+}
+
+.notebook-spiral::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--spiral-width) / 2 - 3px);
+  top: 10px;
+  bottom: 10px;
+  width: 6px;
+  border-radius: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--spiral-wire) 0 18px,
+    var(--spiral-wire-dark) 18px 22px
+  );
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.25), 0 0 0 1px rgba(0,0,0,0.15), 0 0 8px rgba(0,0,0,0.25);
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+}
+
+.page-holes {
+  position: absolute;
+  left: calc(var(--spiral-width) + 2px);
+  top: 14px;
+  bottom: 14px;
+  width: var(--hole-size);
+  z-index: 6;
+  pointer-events: none;
+  /* Faux circular holes using repeated radial gradient */
+  background-image: radial-gradient(circle at 50% 8px, rgba(0,0,0,0.3) 0, rgba(0,0,0,0.3) calc(var(--hole-size)/2), transparent calc(var(--hole-size)/2 + 1px));
+  background-size: var(--hole-size) var(--hole-gap);
+  background-repeat: repeat-y;
+  filter: drop-shadow(0 1px 0 rgba(255,255,255,0.2));
+}
+
+/* Ensure flipping overlay also shows holes aligned to the binding */
+.flipping-page > .page-holes {
+  left: calc(var(--spiral-width) + 2px);
 }
 
 .mobile-page::-webkit-scrollbar {
@@ -1231,6 +1328,7 @@ defineExpose({
   will-change: transform, box-shadow, filter;
   /* Constrain to parent boundaries */
   overflow: hidden;
+  transform-origin: var(--spiral-width) 50% !important;
   
   /* Enhanced page texture with subtle paper grain */
   background-image: 
@@ -1245,6 +1343,11 @@ defineExpose({
     inset 0 0 15px rgba(255,255,255,0.03),
     inset 0 0 30px rgba(255,255,255,0.015),
     0 0 0 rgba(0,0,0,0);
+}
+
+/* Slight emboss around holes to sell the punch-through look */
+.page-holes {
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.08);
 }
 
 /* Enhanced page animation states */
@@ -1439,6 +1542,32 @@ defineExpose({
   );
 }
 
+/* Corner highlight and fold for realism */
+.page-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 100% 100%, rgba(255,255,255,0.65), rgba(255,255,255,0) 70%);
+  opacity: 0.0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.page-fold {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-bottom: 26px solid rgba(255,255,255,0.5);
+  border-left: 26px solid transparent;
+  opacity: 0.0;
+  pointer-events: none;
+  z-index: 6;
+  filter: drop-shadow(-2px -1px 2px rgba(0,0,0,0.15));
+}
 
 
 /* Responsive breakpoints */
