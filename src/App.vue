@@ -1,8 +1,11 @@
 <template>
   <div class="h-screen w-full max-w-full overflow-hidden flex flex-col">
-    <header class="px-6 py-4 flex items-center justify-between border-b border-white/10 flex-shrink-0">
+    <header
+      class="sticky top-0 z-50 px-6 py-3 sm:py-4 flex items-center justify-between border-b border-white/10 flex-shrink-0
+             bg-black/50 backdrop-blur-md text-white shadow-lg"
+    >
       <div class="font-mono text-sm text-accent-300 hidden sm:block">{{ data.site.title }}</div>
-      <nav class="flex gap-3 sm:gap-4 text-xs sm:text-sm overflow-x-auto">
+      <nav class="flex gap-3 sm:gap-4 text-xs sm:text-sm overflow-x-auto whitespace-nowrap text-white/90">
   <button v-for="(link, i) in navLinks" :key="link.to" class="hover:text-accent-300 transition-colors" @click="goTo(i, 'fast')">
           {{ link.label }}
         </button>

@@ -112,18 +112,19 @@
 
       <!-- Fixed side next/prev indicators -->
       <div class="side-nav" aria-hidden="false" role="navigation">
+        <!-- Hide when not applicable instead of showing disabled -->
         <button 
+          v-show="currentPageIndex > 0"
           class="side-btn prev" 
           @click="prevPage" 
-          :disabled="currentPageIndex <= 0"
           aria-label="Previous page"
         >
           ←
         </button>
         <button 
+          v-show="currentPageIndex < pages.length - 1"
           class="side-btn next" 
           @click="nextPage" 
-          :disabled="currentPageIndex >= pages.length - 1"
           aria-label="Next page"
         >
           →
@@ -1239,6 +1240,11 @@ defineExpose({
   opacity: 0.9;
 }
 
+/* Do not reserve space or intercept taps when hidden via v-show */
+.side-btn[style*="display: none"] {
+  pointer-events: none !important;
+}
+
 .side-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.18);
   transform: translateY(-50%) scale(1.05);
@@ -1259,7 +1265,7 @@ defineExpose({
     height: 40px;
     font-size: 1.1rem;
     /* Ensure they're clearly visible on mobile */
-    background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   }
