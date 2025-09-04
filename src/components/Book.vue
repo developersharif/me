@@ -379,13 +379,6 @@ const nextPage = async () => {
   
   const targetIndex = currentPageIndex.value + 1;
   
-  // Play page transition sound if available and sound is enabled
-  if (typeof (window as any).playPageTransitionSound === 'function' && 
-      typeof (window as any).isSoundEnabled === 'function' &&
-      (window as any).isSoundEnabled()) {
-    (window as any).playPageTransitionSound(targetIndex);
-  }
-  
   showPageChangeIndicator('forward', targetIndex);
   await animatePageTurn('forward');
 };
@@ -394,13 +387,6 @@ const prevPage = async () => {
   if (currentPageIndex.value <= 0 || isFlipping.value) return;
   
   const targetIndex = currentPageIndex.value - 1;
-  
-  // Play page transition sound if available and sound is enabled
-  if (typeof (window as any).playPageTransitionSound === 'function' && 
-      typeof (window as any).isSoundEnabled === 'function' &&
-      (window as any).isSoundEnabled()) {
-    (window as any).playPageTransitionSound(targetIndex);
-  }
   
   showPageChangeIndicator('backward', targetIndex);
   await animatePageTurn('backward');
@@ -728,12 +714,6 @@ const goTo = async (index: number, opts?: { mode?: GoToMode }) => {
   
   // Play page transition sound if available and sound is enabled (unless instant mode)
   const mode: GoToMode = opts?.mode ?? 'step';
-  if (mode !== 'instant' && 
-      typeof (window as any).playPageTransitionSound === 'function' && 
-      typeof (window as any).isSoundEnabled === 'function' &&
-      (window as any).isSoundEnabled()) {
-    (window as any).playPageTransitionSound(target);
-  }
   
   const direction: 'forward' | 'backward' = target > currentPageIndex.value ? 'forward' : 'backward';
   showPageChangeIndicator(direction, target);

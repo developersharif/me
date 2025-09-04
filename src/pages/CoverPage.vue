@@ -136,13 +136,8 @@ const cursorStyle = ref({
 const particleIntensity = ref(1);
 const magicLevel = ref(0);
 
-// Audio via composable
-const { audioContext, soundEnabled, initSoundPreference, initializeAudio, toggleSound, createMagicalTone, playMagicalChord, playSparkleSound, playExplosionSound, createRandomPageSound } = useMagicSound();
-// Expose hooks globally for Book.vue
-if (typeof window !== 'undefined') {
-  (window as any).playPageTransitionSound = createRandomPageSound;
-  (window as any).isSoundEnabled = () => soundEnabled.value;
-}
+// Audio via composable (keep interaction sounds only; no page-change sound)
+const { audioContext, soundEnabled, initSoundPreference, initializeAudio, toggleSound, createMagicalTone, playMagicalChord, playSparkleSound, playExplosionSound } = useMagicSound();
 
 // Hover helpers (keep signatures)
 const playSymbolHover = (index: number) => { if (!soundEnabled.value) return; createMagicalTone(440 + index * 50, 0.4, 'hover'); };
