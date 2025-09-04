@@ -9,7 +9,8 @@ export default defineConfig({
     port: 5173,
     open: true
   },
-  base: process.env.GITHUB_ACTIONS ? '/portfolio-vuejs/' : '/',
+  // Use the repository name as base when deploying to GitHub Pages
+  base: process.env.GITHUB_ACTIONS ? '/me/' : '/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),

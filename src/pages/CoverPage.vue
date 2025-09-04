@@ -4,7 +4,7 @@
     <div class="absolute inset-0 -z-10">
       <img 
         v-if="data.background"
-        :src="data.background"
+        :src="resolveAsset(data.background)"
         alt="Workstation background"
         class="w-full h-full object-cover opacity-30 md:opacity-40 scale-105"
       />
@@ -107,6 +107,16 @@ if (!props.data) {
   // eslint-disable-next-line no-console
   console.warn('CoverPage: data prop missing, using fallback.');
 }
+
+// Resolve assets from public/ with correct base in dev and on GitHub Pages
+const resolveAsset = (p: string) => {
+  if (!p) return '';
+  // Leave full URLs and data URIs unchanged
+  if (/^(https?:)?\/\//.test(p) || p.startsWith('data:')) return p;
+  const base = (import.meta as any).env?.BASE_URL || '/';
+  const normalized = p.replace(/^\//, '');
+  return base.replace(/\/$/, '') + '/' + normalized;
+};
 
 // Enhanced magical effects state
 const isMagicActive = ref(false);
