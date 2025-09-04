@@ -10,7 +10,7 @@
     <div class="book-wrapper">
       <div class="book-background" />
       
-      <!-- Book Pages Container -->
+      <!-- Book Pages Container with 3D perspective -->
       <div class="book-pages">
         <!-- Mobile: Single page layout -->
         <div class="mobile-page-container md:hidden">
@@ -35,26 +35,20 @@
             </div>
           </div>
           
-          <!-- Mobile page flip overlay -->
-      <div 
+          <!-- Mobile page flip overlay - constrained within book -->
+          <div 
             v-if="isFlipping" 
             ref="mobileFlipRef"
-            class="mobile-flip-overlay page-flip-container"
-            :class="[
-              flipDirection === 'forward' ? 'origin-right dir-forward' : 'origin-left dir-backward'
-            ]"
+            class="flip-overlay mobile-flip-overlay"
           >
-            <div class="flipping-page">
-        <div class="page-holes" aria-hidden="true" />
+            <div class="flip-page">
+              <div class="page-holes" aria-hidden="true" />
               <div class="mobile-page">
                 <component :is="flipContent?.component" v-bind="flipContent?.props" v-if="flipContent" />
               </div>
               <div class="flip-shadow" aria-hidden="true" />
               <div class="flip-gloss" aria-hidden="true" />
               <div class="page-edge" aria-hidden="true" />
-              <div class="page-spine" aria-hidden="true" />
-              <div class="page-corner" aria-hidden="true" />
-              <div class="page-fold" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -85,26 +79,20 @@
             </div>
           </div>
           
-          <!-- Desktop Page Turn Animation Overlay -->
-      <div 
+          <!-- Desktop Page Turn Animation Overlay - constrained within book -->
+          <div 
             v-if="isFlipping" 
             ref="desktopFlipRef"
-            class="desktop-flip-overlay page-flip-container"
-            :class="[
-              flipDirection === 'forward' ? 'origin-right dir-forward' : 'origin-left dir-backward'
-            ]"
+            class="flip-overlay desktop-flip-overlay"
           >
-            <div class="flipping-page">
-        <div class="page-holes" aria-hidden="true" />
+            <div class="flip-page">
+              <div class="page-holes" aria-hidden="true" />
               <div class="page-content">
                 <component :is="flipContent?.component" v-bind="flipContent?.props" v-if="flipContent" />
               </div>
               <div class="flip-shadow" aria-hidden="true" />
               <div class="flip-gloss" aria-hidden="true" />
               <div class="page-edge" aria-hidden="true" />
-              <div class="page-spine" aria-hidden="true" />
-              <div class="page-corner" aria-hidden="true" />
-              <div class="page-fold" aria-hidden="true" />
             </div>
           </div>
         </div>
@@ -157,8 +145,10 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-// Spiral binding visual width in pixels (used for flip origin)
+// Default/fallback spiral binding width (will be overridden by measurement)
 const SPIRAL_BINDING_WIDTH = 28;
+// Measured right-edge (px) of the `.notebook-spiral` relative to its page container
+const spiralRightPx = ref<number>(SPIRAL_BINDING_WIDTH);
 import gsap from 'gsap';
 
 interface Page {
@@ -244,7 +234,33 @@ const updateScreenSize = () => {
     isTablet: window.innerWidth >= 768 && window.innerWidth < 1024,
     isDesktop: window.innerWidth >= 1024
   };
+  // After each resize/orientation change, recompute the spiral metrics
+  nextTick(() => measureAndApplySpiralMetrics());
 };
+
+// Measure the `.notebook-spiral` and store CSS variables on each page container
+function measureAndApplySpiralMetrics() {
+  const container = bookContainerRef.value as HTMLElement | null;
+  if (!container) return;
+
+  // For each visible page container, find its local spiral and compute its right edge
+  const pageContainers = container.querySelectorAll<HTMLElement>(
+    '.mobile-page-container, .desktop-pages-container'
+  );
+
+  pageContainers.forEach((pageEl) => {
+    const spiral = pageEl.querySelector('.notebook-spiral') as HTMLElement | null;
+    if (!spiral) return;
+    const pageRect = pageEl.getBoundingClientRect();
+    const spiralRect = spiral.getBoundingClientRect();
+    const rightEdge = Math.max(0, Math.round(spiralRect.right - pageRect.left));
+    // Update CSS vars on the specific page container
+    pageEl.style.setProperty('--coil-right', `${rightEdge}px`);
+    pageEl.style.setProperty('--spiral-width', `${Math.max(1, Math.round(spiralRect.width))}px`);
+    // Update reactive ref for JS animation hinge (we hinge at overlay's left = 0px)
+    spiralRightPx.value = rightEdge;
+  });
+}
 
 // Enhanced page change indicator
 const showPageChangeIndicator = (direction: 'forward' | 'backward', targetIndex: number) => {
@@ -392,7 +408,7 @@ const prevPage = async () => {
   await animatePageTurn('backward');
 };
 
-// Quick jump page turn: do a single, shortened flip and set index to target directly
+// Quick jump page turn: fast spiral-bound notebook flip
 const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number): Promise<void> => {
   return new Promise((resolve) => {
     isFlipping.value = true;
@@ -410,8 +426,8 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
         return;
       }
 
-      const flippingPage = container.querySelector('.flipping-page') as HTMLElement | null;
-      if (!flippingPage) {
+      const flipPage = container.querySelector('.flip-page') as HTMLElement | null;
+      if (!flipPage) {
         currentPageIndex.value = targetIndex;
         isFlipping.value = false;
         resolve();
@@ -419,9 +435,20 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
       }
 
   const G = (gsap as any);
-  // Pivot around the spiral binding for both directions
-  const origin = `${SPIRAL_BINDING_WIDTH}px 50%`;
-      G.set(flippingPage, { rotateY: 0, transformOrigin: origin, transformStyle: 'preserve-3d', transformPerspective: 1200, backfaceVisibility: 'hidden' });
+  // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
+  const spiralBindingOrigin = `0px center`;
+      
+      G.set(flipPage, { 
+        rotateY: 0, 
+        rotateX: 0,
+        transformOrigin: spiralBindingOrigin, 
+        transformStyle: 'preserve-3d', 
+        perspective: 1000, 
+        backfaceVisibility: 'hidden',
+        boxShadow: 'none',
+        filter: 'brightness(1)',
+        zIndex: 30
+      });
 
       const tl = G.timeline({
         onComplete: () => {
@@ -430,30 +457,81 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           nextTick(() => {
             mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
             desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+            // Recompute spiral metrics after page content/layout changes
+            measureAndApplySpiralMetrics();
           });
           resolve();
         }
       });
 
-      // Shortened flip sequence (~350ms total)
-      tl.to(flippingPage, {
-        rotateY: direction === 'forward' ? -40 : 40,
-        z: 30,
-        duration: 0.12,
-        ease: 'power2.inOut'
-      })
-      .to(flippingPage, {
-        rotateY: direction === 'forward' ? -160 : 160,
-        z: 20,
-        duration: 0.16,
-        ease: 'power2.inOut'
-      })
-      .to(flippingPage, {
-        rotateY: direction === 'forward' ? -180 : 180,
-        z: 0,
-        duration: 0.08,
-        ease: 'power2.out'
-      });
+      // Quick flip - STRICTLY anchored to coil binding, NO horizontal movement
+      if (direction === 'forward') {
+        tl.to(flipPage, {
+          rotateY: -45, // Quick lift
+          rotateX: -1.2,
+          rotateZ: 0.4,
+          // NO x translation - stay at spiral binding
+          duration: 0.06,
+          ease: 'power2.out',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+        })
+        .to(flipPage, {
+          rotateY: -135, // Fast sweep
+          rotateX: -0.8,
+          rotateZ: 0.2,
+          // NO horizontal drift
+          duration: 0.08,
+          ease: 'power1.inOut',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          filter: 'brightness(1.01) contrast(1.015)'
+        })
+        .to(flipPage, {
+          rotateY: -180, // Quick settle
+          rotateX: 0,
+          rotateZ: 0,
+          // Perfect binding anchor
+          duration: 0.06,
+          ease: 'elastic.out(1.2, 0.7)',
+          boxShadow: 'none',
+          filter: 'brightness(1) contrast(1)'
+        });
+      } else {
+        // Backward quick flip: PURE reverse motion, NO drift
+        tl.fromTo(flipPage, {
+          rotateY: 180, // Start from behind
+          rotateX: 0,
+          rotateZ: 0
+          // NO positioning - binding-anchored only
+        }, {
+          rotateY: 135, // Quick reverse sweep
+          rotateX: 0.8,
+          rotateZ: -0.2,
+          // Stay at spiral binding
+          duration: 0.08,
+          ease: 'power1.inOut',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          filter: 'brightness(1.01) contrast(1.015)'
+        })
+        .to(flipPage, {
+          rotateY: 45, // Quick lift (reverse)
+          rotateX: 1.2,
+          rotateZ: -0.4,
+          // NO horizontal movement
+          duration: 0.06,
+          ease: 'power2.out',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+        })
+        .to(flipPage, {
+          rotateY: 0, // Final forward position
+          rotateX: 0,
+          rotateZ: 0,
+          // Anchored to binding
+          duration: 0.06,
+          ease: 'elastic.out(1.2, 0.7)',
+          boxShadow: 'none',
+          filter: 'brightness(1) contrast(1)'
+        });
+      }
     });
   });
 };
@@ -467,241 +545,400 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
       ? currentPageIndex.value + 1
       : currentPageIndex.value - 1;
 
-    // Set the correct content for the flip overlay
-    // Always flip the current page to ensure correct visual direction
+    // Set the correct content for the flip overlay - show current page during flip
     flipContent.value = props.pages[currentPageIndex.value] as Page;
+
+    // Pre-load the target page content to prevent white flash
+    const targetPage = props.pages[targetIndex] as Page;
 
     nextTick(() => {
       const container = desktopFlipRef.value || mobileFlipRef.value;
-      if (!container) return;
+      if (!container) {
+        currentPageIndex.value = targetIndex;
+        isFlipping.value = false;
+        resolve();
+        return;
+      }
       
-      const flippingPage = container.querySelector('.flipping-page') as HTMLElement | null;
-      if (!flippingPage) return;
+      const flipPage = container.querySelector('.flip-page') as HTMLElement | null;
+      if (!flipPage) {
+        currentPageIndex.value = targetIndex;
+        isFlipping.value = false;
+        resolve();
+        return;
+      }
 
-  const shadow = flippingPage.querySelector('.flip-shadow') as HTMLElement | null;
-      const gloss = flippingPage.querySelector('.flip-gloss') as HTMLElement | null;
-      const edge = flippingPage.querySelector('.page-edge') as HTMLElement | null;
-      const spine = flippingPage.querySelector('.page-spine') as HTMLElement | null;
-  const corner = flippingPage.querySelector('.page-corner') as HTMLElement | null;
-  const fold = flippingPage.querySelector('.page-fold') as HTMLElement | null;
+      const shadow = flipPage.querySelector('.flip-shadow') as HTMLElement | null;
+      const gloss = flipPage.querySelector('.flip-gloss') as HTMLElement | null;
+      const edge = flipPage.querySelector('.page-edge') as HTMLElement | null;
 
-      // Reset transform/shadow with proper 3D setup
   const G = (gsap as any);
-  // Pivot around the spiral binding for both directions
-  const origin = `${SPIRAL_BINDING_WIDTH}px 50%`;
       
-      G.set(flippingPage, { 
-        rotateY: 0, 
+  // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
+  const spiralBindingOrigin = `0px center`;
+      
+      // Prepare the page for realistic flip - no white flash
+      G.set(flipPage, { 
+        rotateY: 0,
         rotateX: 0,
-        skewY: 0,
-        scaleX: 1,
-        scaleY: 1,
-        z: 0,
-        transformOrigin: origin,
+        rotateZ: 0,
+        transformOrigin: spiralBindingOrigin,
         transformStyle: 'preserve-3d',
-        transformPerspective: 1200,
+        perspective: 1200,
         backfaceVisibility: 'hidden',
-        boxShadow: '0 0 0 rgba(0,0,0,0)',
-        filter: 'brightness(1) contrast(1)'
+        boxShadow: 'none',
+        filter: 'brightness(1) contrast(1)',
+        zIndex: 30,
+        opacity: 1, // Ensure visibility
+        visibility: 'visible'
       });
       
-      if (shadow) G.set(shadow, { opacity: 0 });
-  if (gloss) G.set(gloss, { opacity: 0 });
+      // Reset effect elements
+      if (shadow) G.set(shadow, { opacity: 0, scaleX: 1, scaleY: 1 });
+      if (gloss) G.set(gloss, { opacity: 0, x: -80, scaleX: 0.5, skewX: -15 });
       if (edge) G.set(edge, { opacity: 0 });
-      if (spine) G.set(spine, { opacity: 0 });
-  if (corner) G.set(corner, { opacity: 0 });
-  if (fold) G.set(fold, { opacity: 0, borderBottomWidth: 12, borderLeftWidth: 12 });
 
-      // Create realistic page turn timeline with multiple phases
+      // Create realistic hand-flipped notebook timeline
       const tl = G.timeline({
         onComplete: () => {
+          // Update page index smoothly
           currentPageIndex.value = targetIndex;
           isFlipping.value = false;
           nextTick(() => {
-            mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-            desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+            // Smooth scroll reset without jarring
+            const pageRefs = [mobilePageRef.value, desktopPageRef.value];
+            pageRefs.forEach(ref => {
+              if (ref) {
+                ref.scrollTo({ top: 0, behavior: 'auto' });
+              }
+            });
+            // Recompute spiral metrics after page content/layout changes
+            measureAndApplySpiralMetrics();
           });
           resolve();
         }
       });
 
-      // Enhanced realistic page turn with better physics and constraints
-      // Phase 1: Initial lift - page starts to separate from book
-      tl.to(flippingPage, { 
-        rotateY: direction === 'forward' ? -3 : 3,
-        rotateX: -0.5,
-        scaleY: 0.9995,
-        z: 8,
-        boxShadow: '0 3px 8px rgba(0,0,0,0.08)',
-        filter: 'brightness(1.01)',
-        duration: 0.08,
-        ease: 'power2.out'
-      })
-      
-      // Phase 2: Gentle acceleration with curl beginning
-      .to(flippingPage, { 
-        rotateY: direction === 'forward' ? -20 : 20,
-        rotateX: -2,
-        scaleY: 0.999,
-        z: 20,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-        filter: 'brightness(1.03)',
-        duration: 0.15,
-        ease: 'power2.inOut'
-      })
-      
-      // Phase 3: Mid-flip - maximum curl and depth (more constrained)
-      .to(flippingPage, { 
-        rotateY: direction === 'forward' ? -90 : 90,
-        rotateX: -4,
-        scaleY: 0.997,
-        z: 35,
-        boxShadow: '0 15px 35px rgba(0,0,0,0.25)',
-        filter: 'brightness(1.08) contrast(1.03)',
-        duration: 0.2,
-        ease: 'power1.inOut'
-      })
-      
-      // Phase 4: Deceleration with page settling
-      .to(flippingPage, { 
-        rotateY: direction === 'forward' ? -160 : 160,
-        rotateX: -2,
-        scaleY: 0.999,
-        z: 20,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-        filter: 'brightness(1.03)',
-        duration: 0.15,
-        ease: 'power2.out'
-      })
-      
-      // Phase 5: Final approach with subtle overshoot
-      .to(flippingPage, { 
-        rotateY: direction === 'forward' ? -183 : 183,
-        rotateX: -0.5,
-        scaleY: 0.9995,
-        z: 5,
-        boxShadow: '0 3px 8px rgba(0,0,0,0.06)',
-        filter: 'brightness(1.01)',
-        duration: 0.1,
-        ease: 'back.out(1.2)'
-      })
-      
-      // Phase 6: Complete rest - page settles flat
-      .to(flippingPage, { 
-        rotateY: direction === 'forward' ? -180 : 180,
-        rotateX: 0,
-        scaleY: 1,
-        z: 0,
-        boxShadow: '0 0 0 rgba(0,0,0,0)',
-        filter: 'brightness(1) contrast(1)',
-        duration: 0.06,
-        ease: 'power2.out'
-      });
+      // Realistic hand-flipped page physics - STRICTLY anchored to coil binding
+      if (direction === 'forward') {
+        // Forward flip: page lifts and rotates ONLY around spiral binding - NO horizontal drift
+        tl.to(flipPage, {
+          rotateY: -8, // Gentle initial lift
+          rotateX: -0.8, // Slight upward curve
+          rotateZ: 0.3, // Tiny twist
+          // CRITICAL: NO x, y, z translations - stay anchored to spiral binding
+          duration: 0.12,
+          ease: 'power2.out',
+          boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
+        })
+        .to(flipPage, {
+          rotateY: -45, // Quarter turn
+          rotateX: -1.5, // More pronounced curve
+          rotateZ: 0.5, // Slight twist continues
+          // NO position changes - pure rotation around binding
+          duration: 0.18,
+          ease: 'power1.inOut',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+          filter: 'brightness(1.01) contrast(1.02)'
+        })
+        .to(flipPage, {
+          rotateY: -78, // Near completion
+          rotateX: -0.8, // Page straightening
+          rotateZ: 0.2, // Twist reducing
+          // Stay perfectly anchored
+          duration: 0.15,
+          ease: 'power2.out',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
+          filter: 'brightness(1.015) contrast(1.01)'
+        })
+        .to(flipPage, {
+          rotateY: -90, // Perfect vertical
+          rotateX: -0.3,
+          rotateZ: 0,
+          // NO drift from binding axis
+          duration: 0.08,
+          ease: 'power1.inOut',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        })
+        .to(flipPage, {
+          rotateY: -102, // Slight overshoot
+          rotateX: 0.3, // Page curves other way
+          rotateZ: -0.2, // Slight counter-twist
+          // Maintain binding constraint
+          duration: 0.12,
+          ease: 'power2.out',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
+        })
+        .to(flipPage, {
+          rotateY: -180, // Final flat position
+          rotateX: 0,
+          rotateZ: 0,
+          // Perfect anchor at spiral binding
+          duration: 0.15,
+          ease: 'elastic.out(1, 0.8)',
+          boxShadow: 'none',
+          filter: 'brightness(1) contrast(1)'
+        });
+      } else {
+        // Backward flip: PROPER reverse motion - starts from behind, NO horizontal drift
+        tl.fromTo(flipPage, {
+          // Start from behind position
+          rotateY: 180,
+          rotateX: 0,
+          rotateZ: 0
+          // NO x,y,z positioning - pure binding-anchored rotation
+        }, {
+          rotateY: 172, // Begin reverse motion
+          rotateX: -0.3,
+          rotateZ: 0.2,
+          // Stay anchored to binding
+          duration: 0.15,
+          ease: 'elastic.out(1, 0.8)',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
+        })
+        .to(flipPage, {
+          rotateY: 102, // Reverse overshoot
+          rotateX: -0.3,
+          rotateZ: -0.2,
+          // NO horizontal movement
+          duration: 0.12,
+          ease: 'power2.out',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        })
+        .to(flipPage, {
+          rotateY: 90, // Vertical pause
+          rotateX: 0.3,
+          rotateZ: 0,
+          // Binding-anchored only
+          duration: 0.08,
+          ease: 'power1.inOut',
+          boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
+          filter: 'brightness(1.015) contrast(1.01)'
+        })
+        .to(flipPage, {
+          rotateY: 78, // Near completion
+          rotateX: 0.8,
+          rotateZ: -0.2,
+          // NO drift from spiral binding
+          duration: 0.15,
+          ease: 'power2.out',
+          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+          filter: 'brightness(1.01) contrast(1.02)'
+        })
+        .to(flipPage, {
+          rotateY: 45, // Quarter turn
+          rotateX: 1.5,
+          rotateZ: -0.5,
+          // Stay anchored to binding
+          duration: 0.18,
+          ease: 'power1.inOut',
+          boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
+        })
+        .to(flipPage, {
+          rotateY: 8, // Final gentle position
+          rotateX: 0.8,
+          rotateZ: -0.3,
+          // Perfect binding anchor
+          duration: 0.12,
+          ease: 'power2.out',
+          boxShadow: 'none',
+          filter: 'brightness(1) contrast(1)'
+        });
+      }
 
-      // Enhanced shadow animation with realistic lighting
+      // Realistic shadow that follows hand movement - different for forward/backward
       if (shadow) {
-        tl.to(shadow, { 
-          opacity: 0.08, 
-          duration: 0.08, 
-          ease: 'power2.out' 
-        }, 0)
-        .to(shadow, { 
-          opacity: 0.18, 
-          duration: 0.15, 
-          ease: 'power2.inOut' 
-        }, 0.08)
-        .to(shadow, { 
-          opacity: 0.35, 
-          duration: 0.2, 
-          ease: 'power1.inOut' 
-        }, 0.23)
-        .to(shadow, { 
-          opacity: 0.2, 
-          duration: 0.15, 
-          ease: 'power2.out' 
-        }, 0.43)
-        .to(shadow, { 
-          opacity: 0.06, 
-          duration: 0.1, 
-          ease: 'back.out(1.2)' 
-        }, 0.58)
-        .to(shadow, { 
-          opacity: 0, 
-          duration: 0.06, 
-          ease: 'power2.out' 
-        }, 0.68);
+        if (direction === 'forward') {
+          // Forward shadow: starts light, peaks at middle, fades
+          tl.fromTo(shadow, 
+            { opacity: 0, scaleX: 1, scaleY: 1 },
+            { 
+              opacity: 0.08, 
+              scaleX: 1.02, 
+              scaleY: 0.98,
+              duration: 0.12,
+              ease: 'power2.out'
+            }, 0
+          )
+          .to(shadow, {
+            opacity: 0.18,
+            scaleX: 1.05,
+            scaleY: 0.95,
+            duration: 0.18,
+            ease: 'power1.inOut'
+          }, 0.12)
+          .to(shadow, {
+            opacity: 0.25,
+            scaleX: 1.08,
+            scaleY: 0.92,
+            duration: 0.15,
+            ease: 'power2.out'
+          }, 0.3)
+          .to(shadow, {
+            opacity: 0.3,
+            scaleX: 1.1,
+            scaleY: 0.9,
+            duration: 0.08,
+            ease: 'power1.inOut'
+          }, 0.45)
+          .to(shadow, {
+            opacity: 0.25,
+            scaleX: 1.08,
+            scaleY: 0.92,
+            duration: 0.12,
+            ease: 'power2.out'
+          }, 0.53)
+          .to(shadow, {
+            opacity: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 0.15,
+            ease: 'elastic.out(1, 0.8)'
+          }, 0.65);
+        } else {
+          // Backward shadow: reverse timeline - starts strong, fades to light
+          tl.fromTo(shadow,
+            { opacity: 0.3, scaleX: 1.1, scaleY: 0.9 },
+            {
+              opacity: 0.25,
+              scaleX: 1.08,
+              scaleY: 0.92,
+              duration: 0.15,
+              ease: 'elastic.out(1, 0.8)'
+            }, 0
+          )
+          .to(shadow, {
+            opacity: 0.3,
+            scaleX: 1.1,
+            scaleY: 0.9,
+            duration: 0.12,
+            ease: 'power2.out'
+          }, 0.15)
+          .to(shadow, {
+            opacity: 0.25,
+            scaleX: 1.08,
+            scaleY: 0.92,
+            duration: 0.08,
+            ease: 'power1.inOut'
+          }, 0.27)
+          .to(shadow, {
+            opacity: 0.18,
+            scaleX: 1.05,
+            scaleY: 0.95,
+            duration: 0.15,
+            ease: 'power2.out'
+          }, 0.35)
+          .to(shadow, {
+            opacity: 0.08,
+            scaleX: 1.02,
+            scaleY: 0.98,
+            duration: 0.18,
+            ease: 'power1.inOut'
+          }, 0.5)
+          .to(shadow, {
+            opacity: 0,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 0.12,
+            ease: 'power2.out'
+          }, 0.68);
+        }
       }
 
-      // Gloss highlight animation - simulates light reflection
+      // Natural paper gloss - different direction for forward/backward
       if (gloss) {
-        tl.to(gloss, { opacity: 0.03, duration: 0.08, ease: 'power2.out' }, 0)
-          .to(gloss, { opacity: 0.08, duration: 0.15, ease: 'power2.inOut' }, 0.08)
-          .to(gloss, { opacity: 0.15, duration: 0.2, ease: 'power1.inOut' }, 0.23)
-          .to(gloss, { opacity: 0.06, duration: 0.15, ease: 'power2.out' }, 0.43)
-          .to(gloss, { opacity: 0.02, duration: 0.1, ease: 'back.out(1.2)' }, 0.58)
-          .to(gloss, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
+        if (direction === 'forward') {
+          // Forward gloss: sweeps from left to right following the page flip
+          tl.fromTo(gloss, {
+            opacity: 0,
+            x: -80,
+            scaleX: 0.5,
+            skewX: -15
+          }, {
+            opacity: 0.12,
+            x: -40,
+            scaleX: 0.7,
+            skewX: -10,
+            duration: 0.3,
+            ease: 'power2.out'
+          }, 0.1)
+          .to(gloss, {
+            opacity: 0.18,
+            x: 0,
+            scaleX: 1,
+            skewX: 0,
+            duration: 0.25,
+            ease: 'power1.inOut'
+          }, 0.4)
+          .to(gloss, {
+            opacity: 0.08,
+            x: 40,
+            scaleX: 0.7,
+            skewX: 10,
+            duration: 0.25,
+            ease: 'power2.in'
+          }, 0.65);
+        } else {
+          // Backward gloss: sweeps from right to left (reverse motion)
+          tl.fromTo(gloss, {
+            opacity: 0.08,
+            x: 40,
+            scaleX: 0.7,
+            skewX: 10
+          }, {
+            opacity: 0.18,
+            x: 0,
+            scaleX: 1,
+            skewX: 0,
+            duration: 0.25,
+            ease: 'power2.out'
+          }, 0.1)
+          .to(gloss, {
+            opacity: 0.12,
+            x: -40,
+            scaleX: 0.7,
+            skewX: -10,
+            duration: 0.25,
+            ease: 'power1.inOut'
+          }, 0.35)
+          .to(gloss, {
+            opacity: 0,
+            x: -80,
+            scaleX: 0.5,
+            skewX: -15,
+            duration: 0.3,
+            ease: 'power2.in'
+          }, 0.6);
+        }
       }
 
-      // Corner and fold visibility peaks at mid-flip
-      if (corner && fold) {
-        tl.to(corner, { opacity: 0.0, duration: 0.1, ease: 'power2.out' }, 0)
-          .to(corner, { opacity: 0.25, duration: 0.2, ease: 'power2.inOut' }, 0.23)
-          .to(corner, { opacity: 0.05, duration: 0.2, ease: 'power2.out' }, 0.55)
-          .to(corner, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
-        tl.to(fold, { opacity: 0.0, borderBottomWidth: 8, borderLeftWidth: 8, duration: 0.1, ease: 'power2.out' }, 0)
-          .to(fold, { opacity: 0.35, borderBottomWidth: 26, borderLeftWidth: 26, duration: 0.2, ease: 'power2.inOut' }, 0.23)
-          .to(fold, { opacity: 0.12, borderBottomWidth: 12, borderLeftWidth: 12, duration: 0.2, ease: 'power2.out' }, 0.55)
-          .to(fold, { opacity: 0, duration: 0.06, ease: 'power2.out' }, 0.68);
-      }
-
-      // Page edge (thickness) animation for 3D depth
+      // Page edge highlight - simulates page thickness
       if (edge) {
-        tl.to(edge, { opacity: 0.2, duration: 0.12, ease: 'power2.out' }, 0.04)
-          .to(edge, { opacity: 0.4, duration: 0.2, ease: 'power2.inOut' }, 0.19)
-          .to(edge, { opacity: 0.25, duration: 0.2, ease: 'power2.out' }, 0.43)
-          .to(edge, { opacity: 0, duration: 0.1, ease: 'power2.out' }, 0.68);
-      }
-
-      // Page spine effect for enhanced realism
-      if (spine) {
-        tl.to(spine, { opacity: 0.12, duration: 0.15, ease: 'power2.out' }, 0.08)
-          .to(spine, { opacity: 0.25, duration: 0.2, ease: 'power2.inOut' }, 0.23)
-          .to(spine, { opacity: 0.15, duration: 0.15, ease: 'power2.out' }, 0.43)
-          .to(spine, { opacity: 0, duration: 0.1, ease: 'power2.out' }, 0.68);
-      }
-
-      // Add subtle page curl effect to the stationary page behind (reduced intensity)
-      const currentPageEl = screenSize.value.isMobile ? mobilePageRef.value : desktopPageRef.value;
-      if (currentPageEl) {
-        tl.to(currentPageEl, {
-          rotateY: direction === 'forward' ? 1 : -1,
-          z: -3,
-          scale: 0.9995,
-          duration: 0.25,
+        tl.to(edge, {
+          opacity: 0.15,
+          duration: 0.12,
           ease: 'power2.out'
-        }, 0)
-        .to(currentPageEl, {
-          rotateY: 0,
-          z: 0,
-          scale: 1,
-          duration: 0.45,
-          ease: 'elastic.out(1, 0.2)'
-        }, 0.25);
-      }
-
-      // Add subtle ambient lighting effect (reduced intensity)
-      const bookWrapper = container.closest('.book-wrapper');
-      if (bookWrapper) {
-        tl.to(bookWrapper, {
-          filter: 'brightness(1.015) saturate(1.02)',
-          duration: 0.25,
+        }, 0.3)
+        .to(edge, {
+          opacity: 0.3,
+          duration: 0.15,
+          ease: 'power1.inOut'
+        }, 0.45)
+        .to(edge, {
+          opacity: 0.4,
+          duration: 0.08,
+          ease: 'power1.inOut'
+        }, 0.53)
+        .to(edge, {
+          opacity: 0.2,
+          duration: 0.12,
           ease: 'power2.out'
-        }, 0)
-        .to(bookWrapper, {
-          filter: 'brightness(1) saturate(1)',
-          duration: 0.45,
-          ease: 'power2.out'
-        }, 0.25);
+        }, 0.61)
+        .to(edge, {
+          opacity: 0,
+          duration: 0.15,
+          ease: 'power2.in'
+        }, 0.73);
       }
     });
   });
@@ -802,6 +1039,8 @@ onMounted(() => {
   
   // Initial screen size update
   updateScreenSize();
+  // Initial measurement after first render
+  nextTick(() => measureAndApplySpiralMetrics());
 });
 
 onUnmounted(() => {
@@ -841,7 +1080,10 @@ defineExpose({
   display: flex;
   flex-direction: column;
   /* Spiral binding variables */
-  --spiral-width: 28px;
+  --spiral-width: 28px; /* updated per page */
+  --coil-right: 28px;   /* updated per page */
+  --spiral-width: 28px; /* will be updated per page container */
+  --coil-right: 28px;   /* distance from container's left to spiral's right edge */
   --spiral-left-pad: 44px; /* content padding-left when spiral visible */
   --hole-size: 12px;
   --hole-gap: 46px;
@@ -989,25 +1231,27 @@ defineExpose({
 .mobile-flip-overlay {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
+  left: var(--coil-right);
+  width: calc(100% - var(--coil-right));
   height: 100%;
   border-radius: var(--radius-container);
   z-index: 10;
   overflow: hidden;
   will-change: transform;
+  pointer-events: none;
 }
 
 .desktop-flip-overlay {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
+  left: var(--coil-right);
+  width: calc(100% - var(--coil-right));
   height: 100%;
   border-radius: var(--radius-container);
   z-index: 10;
   overflow: hidden;
   will-change: transform;
+  pointer-events: none;
 }
 
 /* Desktop layout */
@@ -1285,7 +1529,87 @@ defineExpose({
   }
 }
 
-/* Enhanced page flip container for more realistic animation */
+/* 3D Perspective for the book container */
+.book-pages {
+  position: relative;
+  perspective: 1000px;
+  perspective-origin: 15% 50%; /* Origin near spiral binding */
+  overflow: hidden; /* Ensure nothing escapes the book bounds */
+  transform-style: preserve-3d;
+}
+
+/* Mobile page container with 3D context */
+.mobile-page-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  overflow: hidden; /* Clip content to book bounds */
+}
+
+/* Desktop pages container with 3D context */
+.desktop-pages-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  overflow: hidden; /* Clip content to book bounds */
+}
+
+  /* Page flip overlay - constrained within book and near coil binding */
+  .flip-overlay {
+    position: absolute;
+    top: 0;
+    left: var(--coil-right);
+    width: calc(100% - var(--coil-right));
+    height: 100%;
+    z-index: 1000;
+    pointer-events: none;
+    transform-style: preserve-3d;
+    /* Critical: Clip to keep animation within coil binding area */
+    clip-path: inset(0); /* Already positioned to start at the spiral's right edge */
+    overflow: hidden; /* Ensure nothing escapes the clipped area */
+  }
+  
+  /* Flip page with proper 3D transforms and realistic styling */
+  .flip-page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    /* Match the exact book page styling to prevent white blink */
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(var(--blur-glass));
+    border: 1px solid var(--color-glass-border);
+    border-radius: var(--radius-container);
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    /* Set transform origin at spiral binding */
+  /* Hinge at the overlay's left edge (aligned to spiral right) */
+  transform-origin: 0px center;
+    /* Ensure page respects book container bounds */
+    clip-path: inset(0 0 0 0);
+    /* Realistic paper texture */
+    background-image: 
+      linear-gradient(90deg, rgba(255,255,255,0.01) 0%, transparent 2%),
+      linear-gradient(0deg, rgba(255,255,255,0.005) 0%, transparent 2%);
+    background-size: 12px 12px, 8px 8px;
+    /* Smooth transitions to prevent blinks */
+    transition: none;
+    will-change: transform, box-shadow;
+  }/* Spiral binding visual constraint */
+.flip-page::before {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--coil-right));
+  top: 0;
+  width: var(--coil-right);
+  height: 100%;
+  background: transparent;
+  z-index: 1001;
+  pointer-events: none;
+}
+
+/* Enhanced page flip container for realistic spiral-bound animation */
 .page-flip-container {
   position: absolute;
   top: 0;
@@ -1293,12 +1617,10 @@ defineExpose({
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 15;
+  z-index: 25;
   transform-style: preserve-3d;
   perspective: 1200px;
-  /* Constrain the flip to just the page area */
-  overflow: hidden;
-  border-radius: var(--radius-container);
+  overflow: visible;
 }
 
 .flipping-page {
@@ -1311,130 +1633,41 @@ defineExpose({
   position: relative;
   transform-style: preserve-3d;
   backface-visibility: hidden;
-  will-change: transform, box-shadow, filter;
-  /* Constrain to parent boundaries */
+  will-change: transform, box-shadow;
   overflow: hidden;
-  transform-origin: var(--spiral-width) 50% !important;
+  /* Critical: Transform origin must be exactly at spiral binding edge */
+  transform-origin: var(--spiral-width) center !important;
   
-  /* Enhanced page texture with subtle paper grain */
+  /* Subtle paper texture that doesn't interfere with content */
   background-image: 
-    radial-gradient(circle at 20% 80%, rgba(255,255,255,0.015) 20%, transparent 21%),
-    radial-gradient(circle at 80% 20%, rgba(255,255,255,0.015) 20%, transparent 21%),
-    linear-gradient(90deg, rgba(255,255,255,0.008) 50%, transparent 50%),
-    linear-gradient(rgba(255,255,255,0.003) 50%, transparent 50%);
-  background-size: 30px 30px, 25px 25px, 12px 12px, 6px 6px;
-  
-  /* Subtle paper-like texture and depth */
-  box-shadow: 
-    inset 0 0 15px rgba(255,255,255,0.03),
-    inset 0 0 30px rgba(255,255,255,0.015),
-    0 0 0 rgba(0,0,0,0);
+    linear-gradient(90deg, rgba(255,255,255,0.01) 0%, transparent 2%),
+    linear-gradient(0deg, rgba(255,255,255,0.005) 0%, transparent 2%);
+  background-size: 12px 12px, 8px 8px;
 }
 
-/* Slight emboss around holes to sell the punch-through look */
-.page-holes {
-  box-shadow: inset -1px 0 0 rgba(255,255,255,0.08);
-}
-
-/* Enhanced page animation states */
-.flipping-forward {
-  animation: realistic-page-turn-forward 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-.flipping-backward {
-  animation: realistic-page-turn-backward 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
-
-/* Realistic page turn keyframes (fallback for older browsers) */
-@keyframes realistic-page-turn-forward {
-  0% {
-    transform: rotateY(0deg) rotateX(0deg) translateZ(0px);
-    filter: brightness(1) contrast(1);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
-  }
-  15% {
-    transform: rotateY(-8deg) rotateX(-2deg) translateZ(20px);
-    filter: brightness(1.05) contrast(1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  }
-  40% {
-    transform: rotateY(-45deg) rotateX(-8deg) translateZ(40px);
-    filter: brightness(1.1) contrast(1.05);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  }
-  60% {
-    transform: rotateY(-90deg) rotateX(-12deg) translateZ(60px);
-    filter: brightness(1.15) contrast(1.1);
-    box-shadow: 0 35px 80px rgba(0,0,0,0.4);
-  }
-  80% {
-    transform: rotateY(-135deg) rotateX(-8deg) translateZ(40px);
-    filter: brightness(1.1) contrast(1.05);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  }
-  95% {
-    transform: rotateY(-185deg) rotateX(-2deg) translateZ(10px);
-    filter: brightness(1.02) contrast(1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  }
-  100% {
-    transform: rotateY(-180deg) rotateX(0deg) translateZ(0px);
-    filter: brightness(1) contrast(1);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
-  }
-}
-
-@keyframes realistic-page-turn-backward {
-  0% {
-    transform: rotateY(0deg) rotateX(0deg) translateZ(0px);
-    filter: brightness(1) contrast(1);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
-  }
-  15% {
-    transform: rotateY(8deg) rotateX(-2deg) translateZ(20px);
-    filter: brightness(1.05) contrast(1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  }
-  40% {
-    transform: rotateY(45deg) rotateX(-8deg) translateZ(40px);
-    filter: brightness(1.1) contrast(1.05);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  }
-  60% {
-    transform: rotateY(90deg) rotateX(-12deg) translateZ(60px);
-    filter: brightness(1.15) contrast(1.1);
-    box-shadow: 0 35px 80px rgba(0,0,0,0.4);
-  }
-  80% {
-    transform: rotateY(135deg) rotateX(-8deg) translateZ(40px);
-    filter: brightness(1.1) contrast(1.05);
-    box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-  }
-  95% {
-    transform: rotateY(185deg) rotateX(-2deg) translateZ(10px);
-    filter: brightness(1.02) contrast(1);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-  }
-  100% {
-    transform: rotateY(180deg) rotateX(0deg) translateZ(0px);
-    filter: brightness(1) contrast(1);
-    box-shadow: 0 0 0 rgba(0,0,0,0);
-  }
-}
-
-/* Enhanced flip shadow elements for more realistic page turning */
-/* Dynamic flip shadow to enhance realism */
+/* Enhanced shadow for realistic depth - follows page motion */
 .flip-shadow {
   position: absolute;
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  mix-blend-mode: multiply;
   border-radius: inherit;
   z-index: 1;
+  will-change: opacity, transform;
+  transition: none;
+  /* Realistic shadow that moves with hand motion */
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(0,0,0,0.05) 20%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.18) 60%,
+    rgba(0,0,0,0.08) 80%,
+    transparent 100%
+  );
 }
 
-/* Subtle moving gloss highlight across the page */
+/* Natural paper gloss - like light reflecting off page surface */
 .flip-gloss {
   position: absolute;
   inset: 0;
@@ -1442,118 +1675,57 @@ defineExpose({
   opacity: 0;
   border-radius: inherit;
   z-index: 2;
+  will-change: opacity, transform;
+  transition: none;
+  /* Realistic paper shine that follows light */
   background: linear-gradient(
-    110deg,
-    rgba(255,255,255,0) 0%,
-    rgba(255,255,255,0.08) 25%,
-    rgba(255,255,255,0.12) 45%,
-    rgba(255,255,255,0.06) 65%,
-    rgba(255,255,255,0) 85%
+    45deg,
+    transparent 0%,
+    rgba(255,255,255,0.02) 25%,
+    rgba(255,255,255,0.08) 45%,
+    rgba(255,255,255,0.12) 50%,
+    rgba(255,255,255,0.08) 55%,
+    rgba(255,255,255,0.02) 75%,
+    transparent 100%
   );
-  mix-blend-mode: screen;
 }
 
-/* Page thickness edge to sell 3D depth */
+/* Page thickness edge - visible during flip */
 .page-edge {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 8px;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 3;
-  border-radius: inherit;
-}
-
-/* Page spine effect for enhanced book realism */
-.page-spine {
-  position: absolute;
-  top: 5%;
-  bottom: 5%;
+  right: -1px;
   width: 3px;
   opacity: 0;
   pointer-events: none;
-  z-index: 4;
-  border-radius: 2px;
+  will-change: opacity;
+  transition: none;
+  /* Enhanced edge highlighting */
+  background: linear-gradient(
+    to bottom,
+    rgba(200,200,200,0.3) 0%,
+    rgba(220,220,220,0.6) 25%,
+    rgba(240,240,240,0.8) 50%,
+    rgba(220,220,220,0.6) 75%,
+    rgba(200,200,200,0.3) 100%
+  );
+  border-radius: 0 var(--radius-container) var(--radius-container) 0;
+  z-index: 3;
   background: linear-gradient(to bottom,
-    rgba(0,0,0,0.2),
-    rgba(0,0,0,0.4) 50%,
-    rgba(0,0,0,0.2)
+    rgba(0,0,0,0.1) 0%,
+    rgba(0,0,0,0.15) 50%,
+    rgba(0,0,0,0.1) 100%
   );
+  border-radius: 0 1px 1px 0;
 }
 
-.dir-forward .page-edge {
-  right: 0;
-  background: linear-gradient(to left,
-    rgba(0,0,0,0.4),
-    rgba(0,0,0,0.2),
-    rgba(255,255,255,0.03)
-  );
-}
-
-.dir-backward .page-edge {
-  left: 0;
-  background: linear-gradient(to right,
-    rgba(0,0,0,0.4),
-    rgba(0,0,0,0.2),
-    rgba(255,255,255,0.03)
-  );
-}
-
-.dir-forward .page-spine {
-  right: 2px;
-}
-
-.dir-backward .page-spine {
-  left: 2px;
-}
-
-.dir-forward .flip-shadow {
-  background: linear-gradient(
-    to left, 
-    rgba(0,0,0,0.35) 0%,
-    rgba(0,0,0,0.2) 20%,
-    rgba(0,0,0,0.08) 40%,
-    transparent 65%
-  );
-}
-
-.dir-backward .flip-shadow {
-  background: linear-gradient(
-    to right, 
-    rgba(0,0,0,0.35) 0%,
-    rgba(0,0,0,0.2) 20%,
-    rgba(0,0,0,0.08) 40%,
-    transparent 65%
-  );
-}
-
-/* Corner highlight and fold for realism */
-.page-corner {
-  position: absolute;
-  width: 28px;
-  height: 28px;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(circle at 100% 100%, rgba(255,255,255,0.65), rgba(255,255,255,0) 70%);
-  opacity: 0.0;
+/* Ensure flip container doesn't interfere with underlying content */
+.mobile-flip-overlay,
+.desktop-flip-overlay {
   pointer-events: none;
-  z-index: 5;
 }
 
-.page-fold {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 0;
-  height: 0;
-  border-bottom: 26px solid rgba(255,255,255,0.5);
-  border-left: 26px solid transparent;
-  opacity: 0.0;
-  pointer-events: none;
-  z-index: 6;
-  filter: drop-shadow(-2px -1px 2px rgba(0,0,0,0.15));
-}
 
 
 /* Responsive breakpoints */
@@ -1759,10 +1931,6 @@ defineExpose({
 
 /* Motion preferences */
 @media (prefers-reduced-motion: reduce) {
-  .realistic-page-turn-forward,
-  .realistic-page-turn-backward,
-  .flipping-forward,
-  .flipping-backward,
   .animate-fade-in {
     animation-duration: 0.2s;
   }
@@ -1804,37 +1972,6 @@ defineExpose({
 .desktop-page, .mobile-page-container {
   transform-style: preserve-3d;
   will-change: transform;
-}
-
-/* Additional realistic page effects for enhanced visual appeal */
-.flipping-page::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(255,255,255,0.03) 0%,
-    transparent 20%,
-    transparent 80%,
-    rgba(0,0,0,0.02) 100%
-  );
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.flipping-page::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(255,255,255,0.02) 0%,
-    transparent 70%
-  );
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 2;
 }
 </style>
 
