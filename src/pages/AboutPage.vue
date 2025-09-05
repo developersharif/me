@@ -24,7 +24,9 @@
           <h3 class="text-lg md:text-xl font-semibold text-white mb-3">{{ data.sections[1].title }}</h3>
           <ul class="space-y-3">
             <li v-for="b in data.sections[1].bullets" :key="b.text" class="flex items-start gap-3">
-              <span class="text-emerald-400 text-lg leading-6 select-none">{{ b.icon }}</span>
+              <span class="mt-[2px]">
+                <AppIcon :name="b.icon" :size="18" :stroke-width="2" tw="text-emerald-400" />
+              </span>
               <span class="text-white/85">{{ b.text }}</span>
             </li>
           </ul>
@@ -78,6 +80,7 @@
 </template>
 
 <script setup lang="ts">
+import AppIcon from '../components/AppIcon.vue';
 interface AboutData {
   header: { title: string; subtitle: string };
   sections: any[];

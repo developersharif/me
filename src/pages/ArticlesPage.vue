@@ -1,7 +1,7 @@
 <template>
   <section class="h-full flex flex-col overflow-hidden">
-      <div class="flex items-center gap-3 mb-4 flex-shrink-0">
-      <div class="text-2xl">📝</div>
+  <div class="flex items-center gap-3 mb-4 flex-shrink-0">
+  <div class="text-2xl"><AppIcon name="pen" :size="24" tw="text-amber-300" /></div>
       <h2 class="text-2xl font-bold">Articles</h2>
       <div class="ml-auto flex items-center gap-3">
         <button v-if="mediumUrl" class="text-xs px-2 py-1 rounded border border-white/10 hover:border-white/20 text-white/80"
@@ -34,6 +34,7 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { onMounted, ref, computed } from 'vue';
+import AppIcon from '../components/AppIcon.vue';
 
 interface ArticlesData { medium?: string }
 interface RssItem { title: string; pubDate: string; link: string; guid: string; description?: string; content?: string; categories?: string[] }

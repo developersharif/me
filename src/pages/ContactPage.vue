@@ -2,7 +2,7 @@
   <section class="h-full flex flex-col overflow-hidden">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-5 flex-shrink-0">
-      <div class="text-3xl">*</div>
+  <div class="text-3xl"><AppIcon name="star" :size="28" tw="text-amber-300" /></div>
       <div class="flex-1">
         <h2 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
           Chapter V: Signals
@@ -32,17 +32,17 @@
         </div>
         <div class="mt-4 space-y-3">
           <a :href="'mailto:' + data.email" class="btn-primary">
-            <span class="text-lg">✉</span>
+            <span class="text-lg"><AppIcon name="mail" :size="18" tw="text-white" /></span>
             <span class="flex-1 text-left truncate">{{ data.email }}</span>
             <span class="opacity-60">↗</span>
           </a>
           <a v-if="data.x" :href="data.x" target="_blank" rel="noopener" class="btn-secondary">
-            <span class="text-lg">X</span>
+            <span class="text-lg"><AppIcon name="twitter" :size="18" tw="text-white" /></span>
             <span class="flex-1 text-left">DM on X</span>
             <span class="opacity-60">↗</span>
           </a>
           <a v-if="data.products?.bgRemover" :href="data.products.bgRemover" target="_blank" rel="noopener" class="btn-glow">
-            <span class="text-lg">▣</span>
+            <span class="text-lg"><AppIcon name="app-window" :size="18" tw="text-white" /></span>
             <span class="flex-1 text-left">BG Remover — Offline</span>
             <span class="opacity-60">↗</span>
           </a>
@@ -53,42 +53,42 @@
       <div class="overflow-y-auto pr-1 flex-1">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <a :href="data.github" target="_blank" rel="noopener" class="tile">
-            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10">GH</span>
+            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10"><AppIcon name="github" :size="16" tw="align-middle" /></span>
             <div>
               <div class="font-semibold text-white">GitHub</div>
               <div class="text-xs text-white/60">Code, OSS, experiments</div>
             </div>
           </a>
           <a :href="data.linkedin" target="_blank" rel="noopener" class="tile">
-            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10">IN</span>
+            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10"><AppIcon name="linkedin" :size="16" tw="align-middle" /></span>
             <div>
               <div class="font-semibold text-white">LinkedIn</div>
               <div class="text-xs text-white/60">Work and updates</div>
             </div>
           </a>
           <a v-if="data.medium" :href="data.medium" target="_blank" rel="noopener" class="tile">
-            <span class="text-xl">✍</span>
+            <span class="text-xl"><AppIcon name="pen" :size="18" tw="text-white" /></span>
             <div>
               <div class="font-semibold text-white">Medium</div>
               <div class="text-xs text-white/60">Writing & notes</div>
             </div>
           </a>
           <a v-if="data.youtube" :href="data.youtube" target="_blank" rel="noopener" class="tile">
-            <span class="text-xl">▶</span>
+            <span class="text-xl"><AppIcon name="play" :size="18" tw="text-white" /></span>
             <div>
               <div class="font-semibold text-white">YouTube</div>
               <div class="text-xs text-white/60">Tutorials & demos</div>
             </div>
           </a>
           <a v-if="data.buymeacoffee" :href="data.buymeacoffee" target="_blank" rel="noopener" class="tile">
-            <span class="text-xl">☕</span>
+            <span class="text-xl"><AppIcon name="coffee" :size="18" tw="text-white" /></span>
             <div>
               <div class="font-semibold text-white">Buy Me a Coffee</div>
               <div class="text-xs text-white/60">Support my indie work</div>
             </div>
           </a>
           <a v-if="data.products?.bgRemover" :href="data.products.bgRemover" target="_blank" rel="noopener" class="tile">
-            <span class="text-xl">✨</span>
+            <span class="text-xl"><AppIcon name="sparkles" :size="18" tw="text-white" /></span>
             <div>
               <div class="font-semibold text-white">Featured: BG Remover</div>
               <div class="text-xs text-white/60">GPU offline background removal</div>
@@ -105,6 +105,7 @@
 
 <script setup lang="ts">
 // @ts-nocheck
+import AppIcon from '../components/AppIcon.vue';
 interface ContactData {
   email: string;
   github: string;
