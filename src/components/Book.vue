@@ -21,6 +21,7 @@
             class="mobile-page with-spiral"
             @scroll="handleScroll"
             ref="mobilePageRef"
+            @pointerdown="handlePointerDown"
           >
             <component :is="currentMobilePage?.component" v-bind="currentMobilePage?.props" v-if="currentMobilePage" />
             
@@ -33,6 +34,9 @@
               <div class="scroll-next-icon">→</div>
               <div class="scroll-next-text">Next Page</div>
             </div>
+            <!-- Corner curl hint -->
+            <div v-if="canFlipForward" class="corner-curl forward" aria-hidden="true"></div>
+            <div v-if="canFlipBackward" class="corner-curl backward" aria-hidden="true"></div>
           </div>
           
           <!-- Mobile page flip overlay - constrained within book -->
@@ -64,6 +68,7 @@
               class="page-content with-spiral"
               @scroll="handleScroll"
               ref="desktopPageRef"
+              @pointerdown="handlePointerDown"
             >
               <component :is="currentMobilePage?.component" v-bind="currentMobilePage?.props" v-if="currentMobilePage" />
               
@@ -76,6 +81,9 @@
                 <div class="scroll-next-icon">→</div>
                 <div class="scroll-next-text">Next Page</div>
               </div>
+              <!-- Corner curl hint -->
+              <div v-if="canFlipForward" class="corner-curl forward" aria-hidden="true"></div>
+              <div v-if="canFlipBackward" class="corner-curl backward" aria-hidden="true"></div>
             </div>
           </div>
           
@@ -171,6 +179,17 @@ const flipDirection = ref<'forward' | 'backward'>('forward');
 const flipContent = ref<Page | null>(null);
 const mobileFlipRef = ref<HTMLDivElement | null>(null);
 const desktopFlipRef = ref<HTMLDivElement | null>(null);
+// Drag-to-flip state
+const drag = ref({
+  active: false,
+  direction: null as null | 'forward' | 'backward',
+  startX: 0,
+  currentX: 0,
+  progress: 0,
+  width: 1,
+  lastTs: 0,
+  velocity: 0,
+});
 
 // Screen adaptation state
 const screenSize = ref({
@@ -219,10 +238,35 @@ const swipeConfig = {
 
 let lastSwipeTime = 0;
 
+// Ignore swipe/flip when the user interacts with links, buttons, form fields, or elements marked as no-flip
+const ignoreTouchGesture = ref(false);
+function isInteractiveElement(el: HTMLElement | null): boolean {
+  if (!el) return false;
+  return !!el.closest(
+    'a, button, input, textarea, select, label, summary, details, [role="button"], [role="link"], [contenteditable="true"], .no-flip, [data-no-flip], [data-interactive]'
+  );
+}
+function eventTargetsInteractive(e: Event): boolean {
+  // If the user is selecting text, don't hijack
+  try {
+    const sel = window.getSelection?.();
+    if (sel && sel.toString().length > 0) return true;
+  } catch {}
+
+  const path = (e.composedPath?.() || []) as EventTarget[];
+  for (const t of path) {
+    if (t instanceof HTMLElement && isInteractiveElement(t)) return true;
+  }
+  const tgt = e.target as HTMLElement | null;
+  return isInteractiveElement(tgt);
+}
+
 // Show current page for both mobile and desktop (single page layout)
 const currentMobilePage = computed(() => {
   return props.pages[currentPageIndex.value];
 });
+const canFlipForward = computed(() => currentPageIndex.value < props.pages.length - 1 && !isFlipping.value);
+const canFlipBackward = computed(() => currentPageIndex.value > 0 && !isFlipping.value);
 
 // Screen size adaptation
 const updateScreenSize = () => {
@@ -306,6 +350,9 @@ const handleScroll = (event: Event) => {
 
 // Enhanced swipe gesture handling
 const handleTouchStart = (e: TouchEvent) => {
+  // If touching an interactive element, skip swipe handling entirely
+  ignoreTouchGesture.value = eventTargetsInteractive(e);
+  if (ignoreTouchGesture.value) return;
   const touch = e.touches[0];
   touchState.value = {
     startX: touch.clientX,
@@ -321,6 +368,7 @@ const handleTouchStart = (e: TouchEvent) => {
 };
 
 const handleTouchMove = (e: TouchEvent) => {
+  if (ignoreTouchGesture.value) return;
   if (!touchState.value.startX) return;
   
   const touch = e.touches[0];
@@ -343,6 +391,10 @@ const handleTouchMove = (e: TouchEvent) => {
 };
 
 const handleTouchEnd = (e: TouchEvent) => {
+  if (ignoreTouchGesture.value) {
+    ignoreTouchGesture.value = false;
+    return;
+  }
   if (!touchState.value.isDragging) return;
   
   const deltaTime = Date.now() - touchState.value.startTime;
@@ -389,6 +441,163 @@ const handleTouchEnd = (e: TouchEvent) => {
     velocity: 0
   };
 };
+
+// Pointer-based drag-to-flip
+const handlePointerDown = (e: PointerEvent) => {
+  if (isFlipping.value) return;
+  // Don't start flip when interacting with actionable elements
+  if (eventTargetsInteractive(e)) return;
+  const targetEl = e.currentTarget as HTMLElement | null;
+  if (!targetEl) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  const rect = targetEl.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const width = rect.width;
+
+  let direction: 'forward' | 'backward' | null = null;
+  if (x > width * 0.65 && canFlipForward.value) direction = 'forward';
+  if (x < width * 0.35 && canFlipBackward.value) direction = direction ?? 'backward';
+  if (!direction) return;
+
+  e.preventDefault();
+  targetEl.setPointerCapture?.(e.pointerId);
+
+  isFlipping.value = true;
+  flipDirection.value = direction;
+  flipContent.value = props.pages[currentPageIndex.value] as Page;
+
+  drag.value = {
+    active: true,
+    direction,
+    startX: x,
+    currentX: x,
+    progress: 0,
+    width: Math.max(1, width - spiralRightPx.value),
+    lastTs: performance.now(),
+    velocity: 0,
+  };
+
+  const container = bookContainerRef.value;
+  container?.addEventListener('pointermove', handlePointerMove as any, { passive: false });
+  container?.addEventListener('pointerup', handlePointerUp as any, { passive: false });
+  container?.addEventListener('pointercancel', handlePointerUp as any, { passive: false });
+
+  nextTick(() => setFlipPageForDrag(0));
+};
+
+const handlePointerMove = (e: PointerEvent) => {
+  if (!drag.value.active) return;
+  const pageEl = (screenSize.value.isDesktop ? desktopPageRef.value : mobilePageRef.value) as HTMLElement | null;
+  if (!pageEl) return;
+
+  const rect = pageEl.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const d = drag.value;
+  const now = performance.now();
+  const dt = Math.max(1, now - d.lastTs);
+  d.velocity = (x - d.currentX) / dt;
+  d.currentX = x;
+  d.lastTs = now;
+
+  if (d.direction === 'forward') {
+    d.progress = Math.min(1, Math.max(0, (d.startX - x) / d.width));
+  } else {
+    d.progress = Math.min(1, Math.max(0, (x - d.startX) / d.width));
+  }
+
+  e.preventDefault();
+  setFlipPageForDrag(d.progress);
+};
+
+const handlePointerUp = (e: PointerEvent) => {
+  if (!drag.value.active) return;
+  e.preventDefault();
+  const d = drag.value;
+  const progress = d.progress;
+  const fast = Math.abs(d.velocity) > 0.05; // ~0.05 px/ms (~50px in 1s)
+  const shouldComplete = progress > 0.5 || (fast && progress > 0.25);
+
+  const container = bookContainerRef.value;
+  container?.removeEventListener('pointermove', handlePointerMove as any);
+  container?.removeEventListener('pointerup', handlePointerUp as any);
+  container?.removeEventListener('pointercancel', handlePointerUp as any);
+
+  const remaining = shouldComplete ? (1 - progress) : progress;
+  const duration = Math.min(0.28, Math.max(0.12, remaining * 0.35));
+  animateDragCompletion(shouldComplete, duration);
+};
+
+function setFlipPageForDrag(progress: number) {
+  const container = desktopFlipRef.value || mobileFlipRef.value;
+  const flipPage = container?.querySelector('.flip-page') as HTMLElement | null;
+  const shadow = flipPage?.querySelector('.flip-shadow') as HTMLElement | null;
+  const gloss = flipPage?.querySelector('.flip-gloss') as HTMLElement | null;
+  const edge = flipPage?.querySelector('.page-edge') as HTMLElement | null;
+  if (!flipPage) return;
+
+  const G = (gsap as any);
+  const dir = drag.value.direction || 'forward';
+  const rotateY = dir === 'forward' ? -180 * progress : 180 * (1 - progress);
+  const curve = Math.sin(Math.PI * Math.min(1, Math.max(0, progress))) * 1.2;
+  const twist = (dir === 'forward' ? 0.5 : -0.5) * Math.sin(progress * Math.PI) * 0.6;
+
+  G.set(flipPage, {
+    rotateY,
+    rotateX: dir === 'forward' ? -curve : curve,
+    rotateZ: twist,
+    transformOrigin: '0px center',
+    transformStyle: 'preserve-3d',
+    perspective: 1200,
+    backfaceVisibility: 'hidden',
+    zIndex: 30,
+  });
+
+  if (shadow) (gsap as any).set(shadow, { opacity: 0.12 + 0.22 * Math.sin(progress * Math.PI) });
+  if (gloss) (gsap as any).set(gloss, { opacity: 0.08 + 0.1 * Math.sin(progress * Math.PI), x: (dir === 'forward' ? -80 + 160 * progress : 80 - 160 * progress) });
+  if (edge) (gsap as any).set(edge, { opacity: 0.15 + 0.25 * progress });
+}
+
+function animateDragCompletion(complete: boolean, duration: number) {
+  const container = desktopFlipRef.value || mobileFlipRef.value;
+  const flipPage = container?.querySelector('.flip-page') as HTMLElement | null;
+  const shadow = flipPage?.querySelector('.flip-shadow') as HTMLElement | null;
+  const gloss = flipPage?.querySelector('.flip-gloss') as HTMLElement | null;
+  const edge = flipPage?.querySelector('.page-edge') as HTMLElement | null;
+  if (!flipPage) {
+    drag.value.active = false;
+    isFlipping.value = false;
+    return;
+  }
+
+  const G = (gsap as any);
+  const dir = drag.value.direction || 'forward';
+  const currentProgress = drag.value.progress;
+  const startY = dir === 'forward' ? -180 * currentProgress : 180 * (1 - currentProgress);
+  const endY = complete ? (dir === 'forward' ? -180 : 0) : (dir === 'forward' ? 0 : 180);
+
+  const tl = G.timeline({
+    defaults: { duration, ease: 'power2.out' },
+    onComplete: () => {
+      const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
+      if (complete) {
+        currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
+      }
+      drag.value.active = false;
+      isFlipping.value = false;
+      nextTick(() => {
+        mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+        desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+        measureAndApplySpiralMetrics();
+      });
+    }
+  });
+
+  tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
+  if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
+  if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
+  if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
+}
 
 const nextPage = async () => {
   if (currentPageIndex.value >= props.pages.length - 1 || isFlipping.value) return;
@@ -1035,7 +1244,9 @@ onMounted(() => {
     container.addEventListener('touchstart', handleTouchStart as any, { passive: false });
     container.addEventListener('touchmove', handleTouchMove as any, { passive: false });
     container.addEventListener('touchend', handleTouchEnd as any, { passive: true });
-    container.addEventListener('wheel', handleWheel as any, { passive: false });
+  container.addEventListener('wheel', handleWheel as any, { passive: false });
+  // Make drag-to-flip work well with touch + mouse
+  container.style.touchAction = 'pan-y';
 
     // Optionally focus the container so Arrow keys work immediately
     container.focus();
@@ -1058,6 +1269,9 @@ onUnmounted(() => {
     container.removeEventListener('touchmove', handleTouchMove as any);
     container.removeEventListener('touchend', handleTouchEnd as any);
     container.removeEventListener('wheel', handleWheel as any);
+  container.removeEventListener('pointermove', handlePointerMove as any);
+  container.removeEventListener('pointerup', handlePointerUp as any);
+  container.removeEventListener('pointercancel', handlePointerUp as any);
   }
 });
 
@@ -1730,6 +1944,21 @@ defineExpose({
   pointer-events: none;
 }
 
+/* Corner curl hint to suggest drag directions */
+.corner-curl {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 0 0 0 8px;
+  background: radial-gradient(120% 120% at 100% 0%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 50%, transparent 60%);
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+.corner-curl.forward { right: 6px; bottom: 6px; transform: rotate(180deg); }
+.corner-curl.backward { left: 6px; bottom: 6px; }
+.with-spiral:hover .corner-curl { opacity: 0.8; }
+
 
 
 /* Responsive breakpoints */
@@ -1977,5 +2206,13 @@ defineExpose({
   transform-style: preserve-3d;
   will-change: transform;
 }
+
+/* Cursor feedback */
+.with-spiral { cursor: default; }
+.with-spiral:has(.corner-curl.forward),
+.with-spiral:has(.corner-curl.backward) {
+  cursor: grab;
+}
+.with-spiral:active { cursor: grabbing; }
 </style>
 

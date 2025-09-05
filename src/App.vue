@@ -34,6 +34,7 @@ import SkillsPage from './pages/SkillsPage.vue';
 import ProjectsPage from './pages/ProjectsPage.vue';
 import ExperiencePage from './pages/ExperiencePage.vue';
 import ContactPage from './pages/ContactPage.vue';
+import ArticlesPage from './pages/ArticlesPage.vue';
 import dataJson from './data/portfolio.json';
 const data: any = dataJson as any;
 import { useTheme } from './composables/useTheme';
@@ -44,7 +45,8 @@ const componentMap: Record<string, any> = {
   skills: SkillsPage,
   projects: ProjectsPage,
   experience: ExperiencePage,
-  contact: ContactPage
+  contact: ContactPage,
+  articles: ArticlesPage
 };
 
 const pagePropsMap: Record<string, any> = {
@@ -53,7 +55,8 @@ const pagePropsMap: Record<string, any> = {
   skills: { data: data.skills },
   projects: { data: data.projects },
   experience: { data: data.experience },
-  contact: { data: data.contact }
+  contact: { data: data.contact },
+  articles: { data: { medium: data.contact?.medium } }
 };
 
 const pages = data.pages.map(p => ({

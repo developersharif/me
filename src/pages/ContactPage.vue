@@ -1,79 +1,102 @@
 <template>
-  <section class="h-full flex flex-col gap-6 justify-center relative overflow-hidden">
-    <!-- Chapter header -->
-    <div class="flex items-center gap-4 mb-6 flex-shrink-0">
-      <div class="text-3xl">📮</div>
+  <section class="h-full flex flex-col overflow-hidden">
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-5 flex-shrink-0">
+      <div class="text-3xl">*</div>
       <div>
         <h2 class="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-          Chapter V: The Envoy
+          Chapter V: Signals
         </h2>
-        <p class="text-white/60 text-sm font-mono">Establishing connections across realms</p>
+        <p class="text-white/60 text-sm font-mono">Let's make something useful together</p>
       </div>
+      <button
+        v-if="data.email"
+        class="ml-auto text-sm px-3 py-1.5 rounded border border-white/10 hover:border-white/20 text-white/80 hover:text-white/100 transition"
+        @click="copyEmail"
+        :title="copied ? 'Copied!' : 'Copy email'"
+      >
+        {{ copied ? 'Copied ✓' : 'Copy email' }}
+      </button>
     </div>
-    
-    <!-- Mystical contact form -->
-    <div class="max-w-md mx-auto w-full space-y-6 flex-1 flex flex-col justify-center overflow-y-auto">
-      <!-- Message -->
-      <div class="text-center space-y-4">
-        <div class="text-6xl animate-pulse-slow">🔮</div>
-        <p class="text-white/80 text-lg leading-relaxed">
-          The Codex awaits your message. Whether you seek collaboration, have questions about the craft, 
-          or simply wish to connect with a fellow digital alchemist...
-        </p>
-        <p class="text-cyan-300 font-medium">The portal is open.</p>
+
+    <!-- Content -->
+    <div class="grid md:grid-cols-2 gap-6 flex-1 overflow-hidden">
+      <!-- Left: calling card -->
+      <div class="rounded-xl border border-white/10 bg-gradient-to-br from-white/5 to-white/0 p-5 flex flex-col justify-between">
+        <div class="space-y-3">
+          <div class="text-6xl animate-pulse-slow select-none">*</div>
+          <h3 class="text-xl font-semibold text-white">Open channels</h3>
+          <p class="text-white/70 text-sm leading-relaxed">
+            Prefer async? Email works best. DMs are fine too. I reply within a day.
+          </p>
+        </div>
+        <div class="mt-4 space-y-3">
+          <a :href="'mailto:' + data.email" class="btn-primary">
+            <span class="text-lg">✉</span>
+            <span class="flex-1 text-left truncate">{{ data.email }}</span>
+            <span class="opacity-60">↗</span>
+          </a>
+          <a v-if="data.x" :href="data.x" target="_blank" rel="noopener" class="btn-secondary">
+            <span class="text-lg">X</span>
+            <span class="flex-1 text-left">DM on X</span>
+            <span class="opacity-60">↗</span>
+          </a>
+          <a v-if="data.products?.bgRemover" :href="data.products.bgRemover" target="_blank" rel="noopener" class="btn-glow">
+            <span class="text-lg">▣</span>
+            <span class="flex-1 text-left">BG Remover — Offline</span>
+            <span class="opacity-60">↗</span>
+          </a>
+        </div>
       </div>
-      
-      <!-- Contact runes/buttons -->
-      <div class="space-y-4">
-        <!-- Email rune -->
-  <a :href="'mailto:' + data.email" 
-           class="contact-rune group flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-lg hover:from-blue-600/30 hover:to-cyan-600/30 hover:border-blue-400/60 transition-all duration-300">
-          <div class="text-2xl group-hover:scale-110 transition-transform">✉️</div>
-          <div class="flex-1">
-      <div class="font-semibold text-white">Send a Digital Scroll</div>
-      <div class="text-sm text-white/70">{{ data.email }}</div>
-          </div>
-          <div class="text-blue-300 opacity-0 group-hover:opacity-100 transition-opacity">→</div>
-        </a>
-        
-        <!-- GitHub rune -->
-    <a :href="data.github" 
-           class="contact-rune group flex items-center gap-4 p-4 bg-gradient-to-r from-gray-600/20 to-slate-600/20 border border-gray-500/30 rounded-lg hover:from-gray-600/30 hover:to-slate-600/30 hover:border-gray-400/60 transition-all duration-300">
-          <div class="text-2xl group-hover:scale-110 transition-transform">⚡</div>
-          <div class="flex-1">
-      <div class="font-semibold text-white">View the Code Vault</div>
-      <div class="text-sm text-white/70">GitHub Repository</div>
-          </div>
-          <div class="text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity">→</div>
-        </a>
-        
-        <!-- LinkedIn rune -->
-    <a :href="data.linkedin" 
-           class="contact-rune group flex items-center gap-4 p-4 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border border-indigo-500/30 rounded-lg hover:from-indigo-600/30 hover:to-purple-600/30 hover:border-indigo-400/60 transition-all duration-300">
-          <div class="text-2xl group-hover:scale-110 transition-transform">🌐</div>
-          <div class="flex-1">
-      <div class="font-semibold text-white">Professional Network</div>
-      <div class="text-sm text-white/70">LinkedIn Profile</div>
-          </div>
-          <div class="text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity">→</div>
-        </a>
-        
-        <!-- CV/Resume rune -->
-    <a :href="data.cv" 
-           class="contact-rune group flex items-center gap-4 p-4 bg-gradient-to-r from-amber-600/20 to-orange-600/20 border border-amber-500/30 rounded-lg hover:from-amber-600/30 hover:to-orange-600/30 hover:border-amber-400/60 transition-all duration-300">
-          <div class="text-2xl group-hover:scale-110 transition-transform">📜</div>
-          <div class="flex-1">
-            <div class="font-semibold text-white">The Sealed Scroll</div>
-            <div class="text-sm text-white/70">Download CV/Resume</div>
-          </div>
-          <div class="text-amber-300 opacity-0 group-hover:opacity-100 transition-opacity">↓</div>
-        </a>
-      </div>
-      
-      <!-- Footer message -->
-      <div class="text-center pt-6 border-t border-white/10">
-        <p class="text-white/60 text-sm">
-          "In the realm of code, connections forge the strongest spells."
+
+      <!-- Right: links grid -->
+      <div class="overflow-y-auto pr-1">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <a :href="data.github" target="_blank" rel="noopener" class="tile">
+            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10">GH</span>
+            <div>
+              <div class="font-semibold text-white">GitHub</div>
+              <div class="text-xs text-white/60">Code, OSS, experiments</div>
+            </div>
+          </a>
+          <a :href="data.linkedin" target="_blank" rel="noopener" class="tile">
+            <span class="text-xs font-mono px-1 py-0.5 rounded bg-white/10">IN</span>
+            <div>
+              <div class="font-semibold text-white">LinkedIn</div>
+              <div class="text-xs text-white/60">Work and updates</div>
+            </div>
+          </a>
+          <a v-if="data.medium" :href="data.medium" target="_blank" rel="noopener" class="tile">
+            <span class="text-xl">✍</span>
+            <div>
+              <div class="font-semibold text-white">Medium</div>
+              <div class="text-xs text-white/60">Writing & notes</div>
+            </div>
+          </a>
+          <a v-if="data.youtube" :href="data.youtube" target="_blank" rel="noopener" class="tile">
+            <span class="text-xl">▶</span>
+            <div>
+              <div class="font-semibold text-white">YouTube</div>
+              <div class="text-xs text-white/60">Tutorials & demos</div>
+            </div>
+          </a>
+          <a v-if="data.buymeacoffee" :href="data.buymeacoffee" target="_blank" rel="noopener" class="tile">
+            <span class="text-xl">☕</span>
+            <div>
+              <div class="font-semibold text-white">Buy Me a Coffee</div>
+              <div class="text-xs text-white/60">Support my indie work</div>
+            </div>
+          </a>
+          <a v-if="data.products?.bgRemover" :href="data.products.bgRemover" target="_blank" rel="noopener" class="tile">
+            <span class="text-xl">✨</span>
+            <div>
+              <div class="font-semibold text-white">Featured: BG Remover</div>
+              <div class="text-xs text-white/60">GPU offline background removal</div>
+            </div>
+          </a>
+        </div>
+        <p class="text-center text-white/50 text-xs mt-5">
+          "Connections compound over time."
         </p>
       </div>
     </div>
@@ -81,9 +104,39 @@
 </template>
 
 <script setup lang="ts">
-interface ContactData { email: string; github: string; linkedin: string; cv: string }
+// @ts-nocheck
+interface ContactData {
+  email: string;
+  github: string;
+  linkedin: string;
+  x?: string;
+  medium?: string;
+  youtube?: string;
+  buymeacoffee?: string;
+  cv?: string;
+  products?: { bgRemover?: string };
+}
 const props = defineProps<{ data?: ContactData }>();
-const data = props.data ?? { email: 'your@example.com', github: '#', linkedin: '#', cv: '/cv.pdf' };
+const data = props.data ?? {
+  email: 'your@example.com',
+  github: '#',
+  linkedin: '#',
+  x: '#',
+  medium: '#',
+  youtube: '#',
+  buymeacoffee: '#',
+  products: { bgRemover: '#' }
+};
+
+import { ref } from 'vue';
+const copied = ref(false);
+function copyEmail() {
+  if (!data.email) return;
+  navigator.clipboard?.writeText(data.email).then(() => {
+    copied.value = true;
+    setTimeout(() => (copied.value = false), 1200);
+  });
+}
 </script>
 
 <style scoped>
@@ -102,13 +155,39 @@ const data = props.data ?? { email: 'your@example.com', github: '#', linkedin: '
   animation: pulse-slow 3s ease-in-out infinite;
 }
 
-.contact-rune {
-  cursor: pointer;
+/* new buttons */
+.btn-primary,
+.btn-secondary,
+.btn-glow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(34,211,238,0.14));
+  color: #fff;
   text-decoration: none;
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease;
 }
+.btn-secondary { background: linear-gradient(135deg, rgba(99,102,241,0.14), rgba(168,85,247,0.12)); }
+.btn-glow { background: linear-gradient(135deg, rgba(16,185,129,0.18), rgba(37,99,235,0.14)); }
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-glow:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.2); box-shadow: 0 8px 24px rgba(0,0,0,0.35); }
 
-.contact-rune:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+/* tiles */
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+  color: #fff;
+  text-decoration: none;
+  transition: transform .15s ease, border-color .2s ease, background .2s ease;
 }
+.tile:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.16); background: radial-gradient(120% 140% at 0% 0%, rgba(255,255,255,0.1), rgba(255,255,255,0.02)); }
 </style>
