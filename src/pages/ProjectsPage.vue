@@ -6,7 +6,7 @@
       <div v-if="featured" class="project-card mb-4">
         <div class="thumb" style="background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(99,102,241,0.22));">
           <div class="shine"></div>
-          <img v-if="featured.image" :src="`/${featured.image}`" :alt="featured.title" class="thumb-image" />
+          <img v-if="featured.image" :src="resolveAsset(featured.image)" :alt="featured.title" class="thumb-image" />
           <div v-else class="thumb-label">Featured</div>
         </div>
         <div class="content">
@@ -25,7 +25,7 @@
         <article v-for="p in data" :key="p.title" class="project-card h-fit">
           <div class="thumb">
             <div class="shine"></div>
-            <img v-if="p.image" :src="`/${p.image}`" :alt="p.title" class="thumb-image" />
+            <img v-if="p.image" :src="resolveAsset(p.image)" :alt="p.title" class="thumb-image" />
             <div v-else class="thumb-label">Preview</div>
           </div>
           <div class="content">
@@ -50,6 +50,16 @@ type Project = { title: string; desc: string; link: string; repo: string; tech?:
 const props = defineProps<{ data?: Project[] }>();
 const featured = (props.data ?? []).find(p => (p as any).featured);
 const data = (props.data ?? []).filter(p => !(p as any).featured);
+
+// Resolve assets from public/ with correct base in dev and on GitHub Pages
+const resolveAsset = (p: string) => {
+  if (!p) return '';
+  // Leave full URLs and data URIs unchanged
+  if (/^(https?:)?\/\//.test(p) || p.startsWith('data:')) return p;
+  const base = (import.meta as any).env?.BASE_URL || '/';
+  const normalized = p.replace(/^\//, '');
+  return base.replace(/\/$/, '') + '/' + normalized;
+};
 </script>
 
 <style scoped>
