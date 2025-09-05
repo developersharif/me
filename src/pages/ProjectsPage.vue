@@ -6,7 +6,8 @@
       <div v-if="featured" class="project-card mb-4">
         <div class="thumb" style="background: linear-gradient(135deg, rgba(16,185,129,0.25), rgba(99,102,241,0.22));">
           <div class="shine"></div>
-          <div class="thumb-label">Featured</div>
+          <img v-if="featured.image" :src="`/${featured.image}`" :alt="featured.title" class="thumb-image" />
+          <div v-else class="thumb-label">Featured</div>
         </div>
         <div class="content">
           <h3 class="title">{{ featured.title }}</h3>
@@ -24,7 +25,8 @@
         <article v-for="p in data" :key="p.title" class="project-card h-fit">
           <div class="thumb">
             <div class="shine"></div>
-            <div class="thumb-label">Preview</div>
+            <img v-if="p.image" :src="`/${p.image}`" :alt="p.title" class="thumb-image" />
+            <div v-else class="thumb-label">Preview</div>
           </div>
           <div class="content">
             <h3 class="title">{{ p.title }}</h3>
@@ -44,7 +46,7 @@
 </template>
 
 <script setup lang="ts">
-type Project = { title: string; desc: string; link: string; repo: string; tech?: string[] };
+type Project = { title: string; desc: string; link: string; repo: string; tech?: string[]; image?: string };
 const props = defineProps<{ data?: Project[] }>();
 const featured = (props.data ?? []).find(p => (p as any).featured);
 const data = (props.data ?? []).filter(p => !(p as any).featured);
@@ -72,6 +74,12 @@ const data = (props.data ?? []).filter(p => !(p as any).featured);
   place-items: center;
   color: rgba(125,211,252,1);
   overflow: hidden;
+}
+.thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 .thumb .shine {
   position: absolute;

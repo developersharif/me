@@ -121,13 +121,13 @@
 			}
 		]
 	},
-		"projects": [
-			{ "title": "UBuilder", "desc": "C/C++ framework that packages Python/PHP/Node apps into a single executable.", "link": "#", "repo": "#", "tech": ["C/C++", "Python", "PHP", "Node.js"] },
-			{ "title": "PineTalk.com", "desc": "WebRTC video chat platform with WebSocket signaling.", "link": "https://pinetalk.com", "repo": "#", "tech": ["WebRTC", "WebSocket", "Node.js"] },
-			{ "title": "FriendsClub (Legacy)", "desc": "Community social platform rebuilt with PHP & JS after Wapka.", "link": "#", "repo": "#", "tech": ["PHP", "JavaScript"] },
-			{ "title": "BG Remover Offline", "desc": "Local background removal app with GPU acceleration.", "link": "https://bgremover.realbrain.cc/", "repo": "#", "tech": ["ONNX", "CUDA", "Desktop"], "featured": true },
-		{ "title": "EasyCap", "desc": "Lightweight screen recorder toolkit (CLI + GUI).", "link": "#", "repo": "#", "tech": ["Desktop", "Media"] },
-	{ "title": "PHP GUI (Tcl/Tk)", "desc": "Cross-platform GUI development package for PHP using Tcl/Tk.", "link": "https://github.com/developersharif/php-gui", "repo": "https://github.com/developersharif/php-gui", "tech": ["PHP", "Tcl/Tk", "Desktop"] },
+	"projects": [
+		{ "title": "UBuilder", "desc": "C/C++ framework that packages Python/PHP/Node apps into a single executable.", "link": "#", "repo": "#", "tech": ["C/C++", "Python", "PHP", "Node.js"] },
+		{ "title": "PineTalk.com", "desc": "WebRTC video chat platform with WebSocket signaling.", "link": "https://pinetalk.com", "repo": "#", "tech": ["WebRTC", "WebSocket", "Node.js"], "image": "assets/images/pinetalk - room.png" },
+		{ "title": "FriendsClub (Legacy)", "desc": "Community social platform rebuilt with PHP & JS after Wapka.", "link": "#", "repo": "#", "tech": ["PHP", "JavaScript"] },
+		{ "title": "BG Remover Offline", "desc": "Local background removal app with GPU acceleration.", "link": "https://bgremover.realbrain.cc/", "repo": "#", "tech": ["ONNX", "CUDA", "Desktop"], "featured": true, "image": "assets/images/bgremover.png" },
+		{ "title": "EasyCap", "desc": "Lightweight screen recorder toolkit (CLI + GUI).", "link": "#", "repo": "#", "tech": ["Desktop", "Media"], "image": "assets/images/easycap-dark.png" },
+		{ "title": "PHP GUI (Tcl/Tk)", "desc": "Cross-platform GUI development package for PHP using Tcl/Tk.", "link": "https://github.com/developersharif/php-gui", "repo": "https://github.com/developersharif/php-gui", "tech": ["PHP", "Tcl/Tk", "Desktop"] },
 		{ "title": "Microcredit Manager", "desc": "Microcredit loan management app for local clients.", "link": "#", "repo": "#", "tech": ["Laravel", "PostgreSQL"] },
 		{ "title": "Custom CMS", "desc": "Bespoke content management tailored to client workflows.", "link": "#", "repo": "#", "tech": ["PHP", "MySQL"] },
 		{ "title": "FriendsClub Android", "desc": "Android WebView app for FriendsClub community.", "link": "#", "repo": "#", "tech": ["Android", "WebView"] }
