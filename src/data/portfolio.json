@@ -1,155 +1,526 @@
 {
-	"site": { "title": "Fullstack Engineer Portfolio", "footerName": "Sharif" },
-	"pages": [
-		{ "id": "cover", "label": "Home" },
-		{ "id": "about", "label": "About" },
-		{ "id": "skills", "label": "Skills" },
-		{ "id": "articles", "label": "Articles" },
-		{ "id": "projects", "label": "Projects" },
-		{ "id": "experience", "label": "Experience" },
-		{ "id": "contact", "label": "Contact" }
-	],
-	"cover": {
-		"symbol": "\u26a1\ufe0e",
-		"titlePrefix": "The Codex of",
-		"name": "Sharif",
-		"tagline": "Fullstack Alchemist",
-		"subtitle": "A chronicle of digital craftsmanship, where code becomes art and innovation meets imagination.",
-		"background": "assets/images/my-workspace.jpeg",
-		"cta": "Touch the rune to begin",
-		"hint": "Swipe or press \u2192"
-	},
-	"about": {
-		"header": { "title": "Chapter I: My Journey", "subtitle": "From Wapka & FriendsClub to RealBrain & Doplac" },
-		"sections": [
-			{
-				"title": "Origins (2018): Wapka & FriendsClub",
-				"body": "I first discovered the magic of building for the web through Wapka. Inspired, I created FriendsClub—a small social platform where people could post, chat, and connect. When Wapka shut down, I doubled down on learning to build it all myself. PHP was my starting point, then JavaScript to rebuild FriendsClub from scratch."
-			},
-			{
-				"title": "Leveling Up",
-				"bullets": [
-					{ "icon": "\u2699\ufe0f", "text": "Explored Python & C for competitive programming and problem solving" },
-					{ "icon": "\ud83d\udcbb", "text": "Built an Android WebView app for FriendsClub" },
-					{ "icon": "\ud83d\udc1e", "text": "Learned full-stack: Core PHP, Laravel, Node.js, Express, Python (FastAPI, Django), and Java" },
-					{ "icon": "\ud83d\udee0\ufe0f", "text": "Adopted Linux & Bash for server management and automation" }
-				]
-			},
-			{
-				"title": "Focus & Interests",
-				"research": [
-					"Realtime communication (WebRTC, WebSockets)",
-					"Systems & packaging (C/C++, native toolchains)",
-					"Developer tools & DX",
-					"Product design & practical problem solving"
-				],
-				"learning": [
-					"Advanced systems design",
-					"Low-level performance tuning",
-					"Better testing cultures",
-					"Polished UX & motion craft"
-				]
-			}
-		],
-		"timeline": [
-			{ "year": "2018", "title": "Spark & First Build", "desc": "Wapka inspires FriendsClub; first steps into web dev" },
-			{ "year": "2019", "title": "Rebuild & Web Foundations", "desc": "PHP and JavaScript rebuild of FriendsClub; early users return" },
-			{ "year": "2020", "title": "Competitive Programming", "desc": "Python and C for contests; deeper algorithms & data structures" },
-			{ "year": "2021", "title": "Realtime & Desktop", "desc": "WebRTC/WebSocket experiments; EasyCap and utility apps" },
-			{ "year": "2022", "title": "RealBrain Founded", "desc": "Delivering custom software for local clients" },
-			{ "year": "2023", "title": "PineTalk", "desc": "Video chat platform using WebRTC and scalable signaling" },
-			{ "year": "2024", "title": "UBuilder & Tooling", "desc": "C/C++ framework to package Python/PHP/Node apps into a single bin" },
-			{ "year": "2025", "title": "Software Engineer @ Doplac", "desc": "Professional engineering while continuing indie projects" }
-		]
-	},
-	"skills": {
-		"groups": [
-			{
-				"icon": "\u2728",
-				"title": "Frontend Enchantments",
-				"subtitle": "Crafting useful and intuitive interfaces",
-				"skills": [
-					{ "name": "Vue 3", "level": "master", "color": "emerald", "description": "Composition API, SPA/SSR" },
-					{ "name": "TypeScript", "level": "master", "color": "blue", "description": "Types across client/server" },
-					{ "name": "GSAP", "level": "adept", "color": "green", "description": "Tasteful motion & micro-interactions" },
-					{ "name": "TailwindCSS", "level": "master", "color": "cyan", "description": "Fast, consistent styling" }
-				]
-			},
-			{
-				"icon": "\u26a1",
-				"title": "Backend Stacks",
-				"subtitle": "APIs and services that ship",
-				"skills": [
-					{ "name": "Node.js", "level": "master", "color": "green", "description": "REST/WS services" },
-					{ "name": "Express", "level": "master", "color": "gray", "description": "Batteries-included web layer" },
-					{ "name": "PHP", "level": "master", "color": "yellow", "description": "Core PHP + modern patterns" },
-					{ "name": "Laravel", "level": "adept", "color": "purple", "description": "Rapid app framework" },
-					{ "name": "Python", "level": "adept", "color": "blue", "description": "Automation & services" },
-					{ "name": "FastAPI / Django", "level": "adept", "color": "indigo", "description": "Production APIs in Python" },
-					{ "name": "PostgreSQL", "level": "adept", "color": "blue", "description": "Relational data" },
-					{ "name": "Redis", "level": "adept", "color": "red", "description": "Caches, queues" }
-				]
-			},
-			{
-				"icon": "\ud83d\udee0\ufe0f",
-				"title": "Systems & Tooling",
-				"subtitle": "Native, packaging, and performance",
-				"skills": [
-					{ "name": "C/C++", "level": "adept", "color": "orange", "description": "Core toolchains & bindings" },
-					{ "name": "Linux & Bash", "level": "master", "color": "gray", "description": "Servers & automation" },
-					{ "name": "NGINX", "level": "adept", "color": "green", "description": "Reverse proxy & TLS" },
-					{ "name": "Docker", "level": "adept", "color": "blue", "description": "Containers & images" }
-				]
-			},
-			{
-				"icon": "\ud83d\udcf6",
-				"title": "Realtime & RTC",
-				"subtitle": "Low-latency communication",
-				"skills": [
-					{ "name": "WebRTC", "level": "adept", "color": "pink", "description": "Media + data channels" },
-					{ "name": "WebSockets", "level": "master", "color": "violet", "description": "Realtime signaling & chat" }
-				]
-			},
-			{
-				"icon": "\ud83d\udcbb",
-				"title": "Desktop & Apps",
-				"subtitle": "Practical tools that help",
-				"skills": [
-					{ "name": "BG Remover Offline", "level": "adept", "color": "emerald", "description": "ONNX/CUDA pipelines (app)" },
-					{ "name": "EasyCap", "level": "adept", "color": "purple", "description": "Screen capture toolkit" }
-				]
-			}
-		]
-	},
-	"projects": [
-		{ "title": "UBuilder", "desc": "C/C++ framework that packages Python/PHP/Node apps into a single executable.", "link": "#", "repo": "#", "tech": ["C/C++", "Python", "PHP", "Node.js"] },
-		{ "title": "PineTalk.com", "desc": "WebRTC video chat platform with WebSocket signaling.", "link": "https://pinetalk.com", "repo": "#", "tech": ["WebRTC", "WebSocket", "Node.js"], "image": "assets/images/pinetalk - room.png" },
-		{ "title": "FriendsClub (Legacy)", "desc": "Community social platform rebuilt with PHP & JS after Wapka.", "link": "#", "repo": "#", "tech": ["PHP", "JavaScript"] },
-		{ "title": "BG Remover Offline", "desc": "Local background removal app with GPU acceleration.", "link": "https://bgremover.realbrain.cc/", "repo": "#", "tech": ["ONNX", "CUDA", "Desktop"], "featured": true, "image": "assets/images/bgremover.png" },
-		{ "title": "EasyCap", "desc": "Lightweight screen recorder toolkit (CLI + GUI).", "link": "#", "repo": "#", "tech": ["Desktop", "Media"], "image": "assets/images/easycap-dark.png" },
-		{ "title": "PHP GUI (Tcl/Tk)", "desc": "Cross-platform GUI development package for PHP using Tcl/Tk.", "link": "https://github.com/developersharif/php-gui", "repo": "https://github.com/developersharif/php-gui", "tech": ["PHP", "Tcl/Tk", "Desktop"] },
-		{ "title": "Microcredit Manager", "desc": "Microcredit loan management app for local clients.", "link": "#", "repo": "#", "tech": ["Laravel", "PostgreSQL"] },
-		{ "title": "Custom CMS", "desc": "Bespoke content management tailored to client workflows.", "link": "#", "repo": "#", "tech": ["PHP", "MySQL"] },
-		{ "title": "FriendsClub Android", "desc": "Android WebView app for FriendsClub community.", "link": "#", "repo": "#", "tech": ["Android", "WebView"] }
-	],
-	"experience": [
-		{ "title": "Software Engineer — Doplac.com", "time": "2025–Present", "desc": "Building production systems and features while honing DX." },
-		{ "title": "Founder — RealBrain", "time": "2022–Present", "desc": "Delivering custom software and launching indie tools." },
-		{ "title": "UBuilder (Private Project)", "time": "2024–2025", "desc": "Cross-platform packager for Python/PHP/Node apps (C/C++)." },
-		{ "title": "PineTalk.com", "time": "2023–2024", "desc": "WebRTC video chat with scalable signaling and TURN/STUN." },
-		{ "title": "FriendsClub Rebuild", "time": "2019–2020", "desc": "Social platform rebuilt in PHP & JavaScript." }
-	],
-		"contact": {
-			"email": "developersharif@yahoo.com",
-			"github": "https://github.com/developersharif",
-			"linkedin": "https://linkedin.com/in/developersharif",
-			"x": "https://x.com/developersharif",
-			"medium": "https://developersharif.medium.com/",
-			"youtube": "https://www.youtube.com/channel/UCCD_sBeqiiC4bYvR1VAYRgw",
-			"buymeacoffee": "https://buymeacoffee.com/developersharif",
-			"cv": "/cv.pdf",
-			"products": {
-				"bgRemover": "https://bgremover.realbrain.cc/"
-			}
-		}
+  "site": { "title": "Fullstack Engineer Portfolio", "footerName": "Sharif" },
+  "pages": [
+    { "id": "cover", "label": "Home" },
+    { "id": "about", "label": "About" },
+    { "id": "skills", "label": "Skills" },
+    { "id": "articles", "label": "Articles" },
+    { "id": "projects", "label": "Projects" },
+    { "id": "experience", "label": "Experience" },
+    { "id": "contact", "label": "Contact" }
+  ],
+  "cover": {
+    "symbol": "\u26a1\ufe0e",
+    "titlePrefix": "The Codex of",
+    "name": "Sharif",
+    "tagline": "Fullstack Alchemist",
+    "subtitle": "A chronicle of digital craftsmanship, where code becomes art and innovation meets imagination.",
+    "background": "assets/images/my-workspace.jpeg",
+    "cta": "Touch the rune to begin",
+    "hint": "Swipe or press \u2192"
+  },
+  "about": {
+    "header": {
+      "title": "Chapter I: My Journey",
+      "subtitle": "From Wapka & FriendsClub to RealBrain & Doplac"
+    },
+    "sections": [
+      {
+        "title": "Origins (2018): Wapka & FriendsClub",
+        "body": "I first discovered the magic of building for the web through Wapka. Inspired, I created FriendsClub—a small social platform where people could post, chat, and connect. When Wapka shut down, I doubled down on learning to build it all myself. PHP was my starting point, then JavaScript to rebuild FriendsClub from scratch."
+      },
+      {
+        "title": "Leveling Up",
+        "bullets": [
+          {
+            "icon": "\u2699\ufe0f",
+            "text": "Explored Python & C for competitive programming and problem solving"
+          },
+          {
+            "icon": "\ud83d\udcbb",
+            "text": "Built an Android WebView app for FriendsClub"
+          },
+          {
+            "icon": "\ud83d\udc1e",
+            "text": "Learned full-stack: Core PHP, Laravel, Node.js, Express, Python (FastAPI, Django), and Java"
+          },
+          {
+            "icon": "\ud83d\udee0\ufe0f",
+            "text": "Adopted Linux & Bash for server management and automation"
+          }
+        ]
+      },
+      {
+        "title": "Focus & Interests",
+        "research": [
+          "Realtime communication (WebRTC, WebSockets)",
+          "Systems & packaging (C/C++, native toolchains)",
+          "Developer tools & DX",
+          "Product design & practical problem solving"
+        ],
+        "learning": [
+          "Advanced systems design",
+          "Low-level performance tuning",
+          "Better testing cultures",
+          "Polished UX & motion craft"
+        ]
+      }
+    ],
+    "timeline": [
+      {
+        "year": "2018",
+        "title": "Spark & First Build",
+        "desc": "Wapka inspires FriendsClub; first steps into web dev"
+      },
+      {
+        "year": "2019",
+        "title": "Rebuild & Web Foundations",
+        "desc": "PHP and JavaScript rebuild of FriendsClub; early users return"
+      },
+      {
+        "year": "2020",
+        "title": "Competitive Programming",
+        "desc": "Python and C for contests; deeper algorithms & data structures"
+      },
+      {
+        "year": "2023",
+        "title": "RealBrain Founded",
+        "desc": "Delivering custom software for local clients"
+      },
+      {
+        "year": "2023",
+        "title": "Realtime & Desktop",
+        "desc": "WebRTC/WebSocket experiments; EasyCap and utility apps"
+      },
+      {
+        "year": "2024",
+        "title": "PineTalk",
+        "desc": "Video chat platform using WebRTC and scalable signaling"
+      },
+      {
+        "year": "2025",
+        "title": "UBuilder & Tooling",
+        "desc": "C/C++ framework to package Python/PHP/Node apps into a single bin"
+      },
+      {
+        "year": "2024",
+        "title": "Software Engineer @ Doplac",
+        "desc": "Professional engineering while continuing indie projects"
+      }
+    ]
+  },
+  "skills": {
+    "groups": [
+      {
+        "icon": "\u26a1",
+        "title": "Backend Stacks",
+        "subtitle": "APIs and services that ship",
+        "skills": [
+          {
+            "name": "Node.js",
+            "level": "master",
+            "color": "green",
+            "description": "REST/WS services"
+          },
+          {
+            "name": "Express",
+            "level": "master",
+            "color": "gray",
+            "description": "Batteries-included web layer"
+          },
+          {
+            "name": "PHP",
+            "level": "master",
+            "color": "yellow",
+            "description": "Core PHP + modern patterns"
+          },
+          {
+            "name": "Laravel",
+            "level": "adept",
+            "color": "purple",
+            "description": "Rapid app framework"
+          },
+          {
+            "name": "Python",
+            "level": "adept",
+            "color": "blue",
+            "description": "Automation & services"
+          },
+          {
+            "name": "FastAPI / Django",
+            "level": "adept",
+            "color": "indigo",
+            "description": "Production APIs in Python"
+          },
+          {
+            "name": "PostgreSQL",
+            "level": "adept",
+            "color": "blue",
+            "description": "Relational data"
+          },
+          {
+            "name": "Redis",
+            "level": "adept",
+            "color": "red",
+            "description": "Caches, queues"
+          },
+          {
+            "name": "MySQL",
+            "level": "adept",
+            "color": "orange",
+            "description": "Relational databases"
+          },
+          {
+            "name": "dragonflydb",
+            "level": "familiar",
+            "color": "red",
+            "description": "Modern in-memory database"
+          },
+          {
+            "name": "Docker",
+            "level": "adept",
+            "color": "blue",
+            "description": "Containerization and deployment"
+          },
+          {
+            "name": "RabbitMQ",
+            "level": "familiar",
+            "color": "red",
+            "description": "Message broker for async tasks"
+          },
+          {
+            "name": "FFmpeg",
+            "level": "adept",
+            "color": "purple",
+            "description": "Audio and video processing"
+          },
+          {
+            "name": "linux servers",
+            "level": "master",
+            "color": "gray",
+            "description": "Hosting and deployment"
+          },
+          {
+            "name": "Kubernetes",
+            "level": "familiar",
+            "color": "blue",
+            "description": "Container orchestration"
+          },
+          {
+            "name": "C/C++",
+            "level": "familiar",
+            "color": "orange",
+            "description": "Core toolchains & bindings"
+          }
+        ]
+      },
+      {
+        "icon": "\u2728",
+        "title": "Frontend Enchantments",
+        "subtitle": "Crafting useful and intuitive interfaces",
+        "skills": [
+          {
+            "name": "Vue 3",
+            "level": "master",
+            "color": "emerald",
+            "description": "Composition API, SPA/SSR"
+          },
+          {
+            "name": "TypeScript",
+            "level": "master",
+            "color": "blue",
+            "description": "Types across client/server"
+          },
+          {
+            "name": "GSAP",
+            "level": "adept",
+            "color": "green",
+            "description": "Tasteful motion & micro-interactions"
+          },
+          {
+            "name": "css",
+            "level": "adept",
+            "color": "cyan",
+            "description": "Styling for the web"
+          },
+          {
+            "name": "Inertia.js",
+            "level": "master",
+            "color": "gray",
+            "description": "Monolithic SPAs with Laravel"
+          },
+          {
+            "name": "React",
+            "level": "adept",
+            "color": "cyan",
+            "description": "Component-driven UIs"
+          },
+          {
+            "name": "Svelte",
+            "level": "novice",
+            "color": "orange",
+            "description": "Lightweight, reactive UIs"
+          },
+          {
+            "name": "Alpine.js",
+            "level": "adept",
+            "color": "teal",
+            "description": "Minimalist JavaScript framework"
+          },
+          {
+            "name": "webGL",
+            "level": "familiar",
+            "color": "blue",
+            "description": "3D graphics in the browser"
+          },
+          {
+            "name": "webAssembly",
+            "level": "familiar",
+            "color": "purple",
+            "description": "High-performance web code"
+          }
+        ]
+      },
+      {
+        "icon": "\ud83d\udee0\ufe0f",
+        "title": "Systems & Tooling",
+        "subtitle": "Native, packaging, and performance",
+        "skills": [
+          {
+            "name": "Make/CMake",
+            "level": "adept",
+            "color": "yellow",
+            "description": "Build systems"
+          },
+          {
+            "name": "ONNX",
+            "level": "adept",
+            "color": "red",
+            "description": "ML model deployment"
+          },
+          {
+            "name": "Tcl/Tk",
+            "level": "adept",
+            "color": "purple",
+            "description": "Cross-platform GUI dev"
+          },
+          {
+            "name": "Linux & Bash",
+            "level": "master",
+            "color": "gray",
+            "description": "Servers & automation"
+          },
+          {
+            "name": "NGINX",
+            "level": "adept",
+            "color": "green",
+            "description": "Reverse proxy & TLS"
+          },
+          {
+            "name": "Docker",
+            "level": "adept",
+            "color": "blue",
+            "description": "Containers & images"
+          },
+          {
+            "name": "franken php",
+            "level": "familiar",
+            "color": "orange",
+            "description": "The Modern PHP App Server, written in Go"
+          }
+        ]
+      },
+      {
+        "icon": "\ud83d\udcf6",
+        "title": "Realtime & RTC",
+        "subtitle": "Low-latency communication",
+        "skills": [
+          {
+            "name": "WebRTC",
+            "level": "adept",
+            "color": "pink",
+            "description": "Media + data channels"
+          },
+          {
+            "name": "WebSockets",
+            "level": "master",
+            "color": "violet",
+            "description": "Realtime signaling & chat"
+          }
+        ]
+      },
+      {
+        "icon": "\ud83d\udcbb",
+        "title": "Desktop & Apps",
+        "subtitle": "Practical tools that help",
+        "skills": [
+          {
+            "name": "BG Remover Offline",
+            "level": "adept",
+            "color": "emerald",
+            "description": "ONNX/CUDA pipelines (app)"
+          },
+          {
+            "name": "EasyCap",
+            "level": "adept",
+            "color": "purple",
+            "description": "Screen capture toolkit"
+          }
+        ]
+      }
+    ]
+  },
+  "projects": [
+    {
+      "title": "UBuilder",
+      "desc": "C/C++ framework that packages Python/PHP/Node apps into a single executable.",
+      "link": "#",
+      "repo": "#",
+      "tech": ["C/C++"]
+    },
+    {
+      "title": "PineTalk.com",
+      "desc": "WebRTC video chat platform with WebSocket signaling.",
+      "link": "https://pinetalk.com",
+      "repo": "#",
+      "tech": [
+        "WebRTC",
+        "WebSocket",
+        "Laravel",
+        "inertiajs",
+        "coturn",
+        "peerjs"
+      ],
+      "image": "assets/images/pinetalk - room.png"
+    },
+    {
+      "title": "BG Remover Offline",
+      "desc": "Local background removal app with GPU acceleration.",
+      "link": "https://bgremover.realbrain.cc/",
+      "repo": "#",
+      "tech": ["ONNX", "python3", "tkinter"],
+      "featured": true,
+      "image": "assets/images/bgremover.png"
+    },
+    {
+      "title": "EasyCap",
+      "desc": "Lightweight screen recorder toolkit (CLI + GUI).",
+      "link": "#",
+      "repo": "#",
+      "tech": ["Desktop", "python3", "tkinter", "FFmpeg"],
+      "image": "assets/images/easycap-dark.png"
+    },
+    {
+      "title": "PHP GUI (Tcl/Tk)",
+      "desc": "Cross-platform GUI development package for PHP using Tcl/Tk.",
+      "link": "https://github.com/developersharif/php-gui",
+      "repo": "https://github.com/developersharif/php-gui",
+      "tech": ["PHP", "Tcl/Tk", "Desktop"],
+      "image": "assets/images/gui-php.png"
+    },
+    {
+      "title": "Luxury Car Booking",
+      "desc": " The application digitizes the entire booking and management workflow, providing a seamless experience for both customers and the business.",
+      "link": "https://ridemintnyc.com/",
+      "repo": "#",
+      "tech": ["Laravel", "mysql", "redis"],
+      "image": "assets/images/ridemintnyc.png"
+    },
+    {
+      "title": "Tinygram",
+      "desc": "Tinygram is a new social media platform for visual storytelling. Share moments, connect with friends, and explore captivating content.",
+      "link": "https://github.com/developersharif/tinygram",
+      "repo": "https://github.com/developersharif/tinygram",
+      "tech": [
+        "Laravel10",
+        "mysql",
+        "websocket",
+        "dragonflydb",
+        " Reactjs(/chat route)"
+      ],
+      "image": "assets/images/ridemintnyc.png"
+    },
+    {
+      "title": "Microcredit Manager",
+      "desc": "Microcredit loan management app for local clients.",
+      "link": "#",
+      "repo": "#",
+      "tech": ["core php", "mysql5"]
+    },
+    {
+      "title": "News Portal CMS",
+      "desc": "Bespoke content management tailored to client workflows.",
+      "link": "https://web.archive.org/web/20220423103442/https://newsnarayanganjbd.com/",
+      "repo": "#",
+      "tech": ["PHP", "MySQL"]
+    },
+    {
+      "title": "FriendsClub Android",
+      "desc": "Android WebView app for FriendsClub community.",
+      "link": "https://github.com/grayphp/micro",
+      "repo": "https://github.com/grayphp/micro",
+      "tech": ["Android", "WebView"]
+    },
+    {
+      "title": "PHP micro Framework",
+      "desc": "Lightweight PHP micro framework for building web applications.",
+      "link": "#",
+      "repo": "#",
+      "tech": ["PHP", "Microservices"]
+    },
+    {
+      "title": "Nodejs Screenshot capture",
+      "desc": "Nodejs package to capture website screenshot using puppeteer",
+      "link": "https://www.npmjs.com/package/screenshot-capture-tool",
+      "repo": "https://github.com/developersharif/screenshot-capture"
+    },
+    {
+      "title": "FriendsClub (Legacy)",
+      "desc": "Community social platform rebuilt with PHP & JS after Wapka.",
+      "link": "https://web.facebook.com/gvfriendsclub1",
+      "repo": "#",
+      "image": "assets/images/friendsclub.jpg",
+      "tech": ["core php", "JavaScript"]
+    }
+  ],
+  "experience": [
+    {
+      "title": "Software Engineer — Doplac.com",
+      "time": "2024–Present",
+      "desc": "Building production systems and features while honing DX."
+    },
+    {
+      "title": "Founder — RealBrain",
+      "time": "2023–Present",
+      "desc": "Delivering custom software and launching indie tools."
+    },
+    {
+      "title": "UBuilder (Private Project)",
+      "time": "2024–2025",
+      "desc": "Cross-platform packager for Python/PHP/Node apps (C/C++)."
+    },
+    {
+      "title": "PineTalk.com",
+      "time": "2025–present",
+      "desc": "WebRTC video chat with scalable signaling and TURN/STUN."
+    },
+    {
+      "title": "FriendsClub Rebuild",
+      "time": "2019–2020",
+      "desc": "Social platform rebuilt in PHP & JavaScript."
+    }
+  ],
+  "contact": {
+    "email": "developersharif@yahoo.com",
+    "github": "https://github.com/developersharif",
+    "linkedin": "https://linkedin.com/in/developersharif",
+    "x": "https://x.com/developersharif",
+    "medium": "https://developersharif.medium.com/",
+    "youtube": "https://www.youtube.com/channel/UCCD_sBeqiiC4bYvR1VAYRgw",
+    "buymeacoffee": "https://buymeacoffee.com/developersharif",
+    "cv": "/cv.pdf",
+    "products": {
+      "bgRemover": "https://bgremover.realbrain.cc/"
+    }
+  }
 }
