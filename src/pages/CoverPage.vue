@@ -7,23 +7,17 @@
         :src="resolveAsset(data.background)"
         alt="Workstation background"
         class="w-full h-full object-cover opacity-30 md:opacity-40 scale-105"
+        loading="eager"
+        decoding="async"
       />
       <div class="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-indigo-950/50 to-purple-950/50"></div>
   <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(147,51,234,.15),transparent_60%)]"></div>
   <div class="absolute inset-0 pointer-events-none cover-noise"></div>
     </div>
     
-    <!-- Floating particles -->
-    <div class="absolute inset-0">
-      <div v-for="i in 20" :key="i" 
-           class="absolute w-1 h-1 bg-white/20 rounded-full animate-float"
-           :style="{
-             left: Math.random() * 100 + '%',
-             top: Math.random() * 100 + '%',
-             animationDelay: Math.random() * 4 + 's',
-             animationDuration: (Math.random() * 3 + 2) + 's'
-           }">
-      </div>
+    <!-- Optimized floating particles using CSS-only approach -->
+    <div class="absolute inset-0 floating-particles-container">
+      <!-- Use CSS pseudo-elements and keyframes instead of v-for with random calculations -->
     </div>
     
     <!-- Main content -->
@@ -80,11 +74,11 @@
 
 <script setup lang="ts">
 // @ts-nocheck
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, onMounted, computed, defineAsyncComponent } from 'vue';
 import CoverHeader from '../components/cover/CoverHeader.vue';
-import CoverPortal from '../components/cover/CoverPortal.vue';
-// Removed CoverCtaText and CoverHint per request
-import SoundToggle from '../components/cover/SoundToggle.vue';
+// Lazy load heavy components for better initial performance
+const CoverPortal = defineAsyncComponent(() => import('../components/cover/CoverPortal.vue'));
+const SoundToggle = defineAsyncComponent(() => import('../components/cover/SoundToggle.vue'));
 import { useMagicSound } from '../composables/useMagicSound';
 import themeConfig from '../data/theme.json';
 
@@ -120,308 +114,297 @@ const resolveAsset = (p: string) => {
   return base.replace(/\/$/, '') + '/' + normalized;
 };
 
-// Enhanced magical effects state
+// Enhanced magical effects state (optimized)
 const isMagicActive = ref(false);
-const magicalSymbols = ref(['✦', '⟐', '⬟', '◊', '⬢', '⟡', '◈', '⬣']);
-const sparkleSymbols = ref(['✨', '⭐', '💫', '🌟', '✧', '⋆', '✦', '✩']);
+const magicalSymbols = ref(['✦', '⟐', '⬟', '◊']); // Reduced from 8 to 4 symbols
+const sparkleSymbols = ref(['✨', '⭐', '💫', '🌟']); // Reduced from 8 to 4 symbols
 const isExploding = ref(false);
 
-// Device detection for proper magic effects
+// Device detection for proper magic effects (optimized)
 const isMobile = ref(false);
-const isTouch = ref(false);
+// Removed isTouch as it's redundant with isMobile
 
-// Desktop cursor effect state
-const desktopCursorEffect = ref(null);
-const desktopEffectActive = ref(false);
+// Optimized cursor effect state - only track when needed
 const cursorPosition = ref({ x: 0, y: 0 });
+const cursorTrackingActive = ref(false);
 
-// Enhanced cursor tracking for magical trail
+// Simplified cursor tracking
 const cursorStyle = ref({
   left: '0px',
   top: '0px',
   opacity: '0'
 });
 
-// Enhanced visual effects
+// Enhanced visual effects (optimized)
 const particleIntensity = ref(1);
 const magicLevel = ref(0);
 
-// Magic configuration from theme
+// Magic configuration from theme (simplified)
 const magicConfig = computed(() => themeConfig.magicEffects || {
-  desktopCursorEffectDuration: 5000,
-  mobileEffectEnabled: true,
-  desktopEffectEnabled: true,
-  cursorTrailIntensity: 1.2,
-  particleBurstCount: 12
+  desktopEffectEnabled: !isMobile.value, // Dynamic based on device
+  particleBurstCount: 8 // Reduced from 12 to 8
 });
 
-// Audio via composable (keep interaction sounds only; no page-change sound)
-const { audioContext, soundEnabled, initSoundPreference, initializeAudio, toggleSound, createMagicalTone, playMagicalChord, playSparkleSound, playExplosionSound } = useMagicSound();
+// Audio via composable (enhanced gamified version)
+const { 
+  soundEnabled, 
+  isAudioInitialized, 
+  initSoundPreference, 
+  toggleSound, 
+  playMagicalChord, 
+  playSparkleSound,
+  playExplosionSound, 
+  playHoverSound,
+  playMagicLevelUp,
+  playPortalActivate,
+  playPortalDeactivate,
+  initializeAudioContext 
+} = useMagicSound();
 
-// Hover helpers (keep signatures)
-const playSymbolHover = (index: number) => { if (!soundEnabled.value) return; createMagicalTone(440 + index * 50, 0.4, 'hover'); };
-const playSparkleHover = (index: number) => { if (!soundEnabled.value) return; createMagicalTone(800 + index * 30, 0.2, 'hover'); };
-
-// Enhanced cursor tracking with better precision
-const updateCursorPosition = (event: MouseEvent) => {
-  const rect = document.documentElement.getBoundingClientRect();
-  cursorPosition.value = { 
-    x: event.clientX - rect.left, 
-    y: event.clientY - rect.top 
-  };
-  
-  cursorStyle.value = {
-    left: (event.clientX - 10) + 'px',
-    top: (event.clientY - 10) + 'px',
-    opacity: isMagicActive.value ? String(magicConfig.value.cursorTrailIntensity) : '0.5'
-  };
+// Enhanced gamified hover helpers
+const playSymbolHover = (index: number) => { 
+  if (!soundEnabled.value) return; 
+  playHoverSound(index); // Use specialized hover sound with musical scale
+};
+const playSparkleHover = (index: number) => { 
+  if (!soundEnabled.value) return; 
+  playSparkleSound(800 + (index * 100)); // Different pitch per sparkle
 };
 
-// Device detection function with better window resize handling
+// Optimized cursor tracking with throttling
+let cursorThrottle: number | null = null;
+const updateCursorPosition = (event: MouseEvent) => {
+  if (cursorThrottle) return; // Throttle to 16ms (~60fps)
+  
+  cursorThrottle = window.setTimeout(() => {
+    cursorPosition.value = { 
+      x: event.clientX, 
+      y: event.clientY 
+    };
+    
+    cursorStyle.value = {
+      left: (event.clientX - 10) + 'px',
+      top: (event.clientY - 10) + 'px',
+      opacity: isMagicActive.value ? '1' : '0.5'
+    };
+    cursorThrottle = null;
+  }, 16);
+};
+
+// Simplified device detection
 const detectDevice = () => {
   const newIsMobile = window.innerWidth <= 768 || /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const newIsTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
   
-  // Update device state
-  const deviceChanged = isMobile.value !== newIsMobile;
-  isMobile.value = newIsMobile;
-  isTouch.value = newIsTouch;
-  
-  // If device type changed, update cursor tracking accordingly
-  if (deviceChanged) {
-    if (newIsMobile) {
-      // Remove cursor tracking for mobile
+  if (isMobile.value !== newIsMobile) {
+    isMobile.value = newIsMobile;
+    
+    // Toggle cursor tracking based on device
+    if (newIsMobile && cursorTrackingActive.value) {
       document.removeEventListener('mousemove', updateCursorPosition);
-    } else {
-      // Add cursor tracking for desktop
-      document.addEventListener('mousemove', updateCursorPosition);
+      cursorTrackingActive.value = false;
+    } else if (!newIsMobile && !cursorTrackingActive.value) {
+      document.addEventListener('mousemove', updateCursorPosition, { passive: true });
+      cursorTrackingActive.value = true;
     }
   }
 };
 
-// Create desktop cursor magic effect
+// Optimized desktop cursor effect with reduced particle count
 const createDesktopCursorEffect = (x: number, y: number) => {
   if (!magicConfig.value.desktopEffectEnabled || isMobile.value) return;
   
   const container = document.body;
   const effectContainer = document.createElement('div');
   effectContainer.className = 'desktop-cursor-magic-effect';
-  effectContainer.style.position = 'fixed';
-  effectContainer.style.left = x + 'px';
-  effectContainer.style.top = y + 'px';
-  effectContainer.style.pointerEvents = 'none';
-  effectContainer.style.zIndex = '9999';
-  effectContainer.style.transform = 'translate(-50%, -50%)';
+  effectContainer.style.cssText = `
+    position: fixed;
+    left: ${x}px;
+    top: ${y}px;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+  `;
   
-  // Create multiple magic particles
-  for (let i = 0; i < magicConfig.value.particleBurstCount; i++) {
+  // Reduced particle count for better performance
+  for (let i = 0; i < 6; i++) { // Reduced from 12 to 6
     const particle = document.createElement('div');
-    particle.className = 'desktop-magic-particle';
     particle.innerHTML = sparkleSymbols.value[i % sparkleSymbols.value.length];
-    particle.style.position = 'absolute';
-    particle.style.fontSize = '16px';
-    particle.style.color = '#9333ea';
-    particle.style.filter = 'drop-shadow(0 0 8px rgba(147, 51, 234, 0.8))';
-    particle.style.animation = `desktopMagicParticle ${magicConfig.value.desktopCursorEffectDuration}ms cubic-bezier(0.4, 0, 0.2, 1) forwards`;
-    particle.style.setProperty('--angle', (i * 30) + 'deg');
-    particle.style.setProperty('--distance', (Math.random() * 100 + 50) + 'px');
+    particle.style.cssText = `
+      position: absolute;
+      font-size: 16px;
+      color: #9333ea;
+      filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8));
+      animation: desktopMagicParticle 3000ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      --angle: ${i * 60}deg;
+      --distance: ${Math.random() * 80 + 40}px;
+    `;
     
     effectContainer.appendChild(particle);
   }
   
   container.appendChild(effectContainer);
   
-  // Remove effect after duration
+  // Cleanup with shorter duration
   setTimeout(() => {
-    if (effectContainer.parentNode) {
-      effectContainer.parentNode.removeChild(effectContainer);
-    }
-  }, magicConfig.value.desktopCursorEffectDuration);
+    effectContainer.remove();
+  }, 3000); // Reduced from 5000ms
 };
 
-// Progressive magic enhancement
+// Optimized progressive magic enhancement with gamified audio
+let magicThrottle: number | null = null;
 const increaseMagicLevel = () => {
-  magicLevel.value = Math.min(magicLevel.value + 1, 10);
-  particleIntensity.value = 1 + (magicLevel.value * 0.2);
+  if (magicThrottle) return; // Prevent rapid calls
   
-  // Play progression sound
-  if (soundEnabled.value && magicLevel.value % 3 === 0) {
-    createMagicalTone(440 + (magicLevel.value * 50), 0.6, 'activate');
-  }
+  magicThrottle = window.setTimeout(() => {
+    const oldLevel = magicLevel.value;
+    magicLevel.value = Math.min(magicLevel.value + 1, 10);
+    particleIntensity.value = 1 + (magicLevel.value * 0.1); // Reduced intensity
+    
+    // Play level up sound every few levels
+    if (soundEnabled.value && magicLevel.value > oldLevel) {
+      if (magicLevel.value % 3 === 0) {
+        playMagicLevelUp(magicLevel.value);
+      } else {
+        playMagicalChord(440 + (magicLevel.value * 40), 0.3, 0.6);
+      }
+    }
+    magicThrottle = null;
+  }, 100); // 100ms throttle
 };
 
-// Performance optimized interaction functions
+// Enhanced gamified interaction functions
 const activateMagic = () => {
   isMagicActive.value = true;
-  // Add performance hint for animations
   document.documentElement.style.setProperty('--magic-active', '1');
   
-  // Increase magic intensity
   increaseMagicLevel();
   
-  // Play magical hover sound
-  playMagicalChord(440, 1.0);
-  playSparkleSound();
+  // Play portal activation sound
+  if (soundEnabled.value) {
+    playPortalActivate();
+  }
 };
 
 const deactivateMagic = () => {
   isMagicActive.value = false;
   document.documentElement.style.setProperty('--magic-active', '0');
   
-  // Gradually decrease magic level
-  setTimeout(() => {
-    magicLevel.value = Math.max(magicLevel.value - 1, 0);
-    particleIntensity.value = 1 + (magicLevel.value * 0.2);
-  }, 2000);
+  // Play portal deactivation sound
+  if (soundEnabled.value) {
+    playPortalDeactivate();
+  }
   
-  // Play subtle deactivation sound
-  createMagicalTone(330, 0.8, 'hover');
+  // Faster magic level decrease
+  setTimeout(() => {
+    magicLevel.value = Math.max(magicLevel.value - 2, 0); // Faster decrease
+    particleIntensity.value = 1 + (magicLevel.value * 0.1);
+  }, 1000); // Reduced timeout
 };
 
 const triggerMagicalEffect = () => {
   if (isExploding.value) return; // Prevent spam clicking
   
   isExploding.value = true;
+  detectDevice(); // Re-detect device
   
-  // Re-detect device on each click to handle window resizing
-  detectDevice();
+  // Play explosion sound
+  if (soundEnabled.value) {
+    playExplosionSound();
+  }
   
-  // Always show the main magical burst effects
-  // Device-specific effects are additive, not exclusive
-  const showMainEffects = true;
-  const showDesktopCursorEffect = !isMobile.value && magicConfig.value.desktopEffectEnabled;
-  
-  // Play dramatic explosion sound
-  playExplosionSound();
-  
-  // Create desktop cursor effect at current cursor position (desktop only)
-  if (showDesktopCursorEffect) {
+  // Desktop cursor effect (simplified)
+  if (!isMobile.value) {
     createDesktopCursorEffect(cursorPosition.value.x, cursorPosition.value.y);
   }
   
-  // Enhanced magical explosion with better performance
+  // Simplified magical explosion
   const portal = document.querySelector('.magical-portal');
-  if (portal && showMainEffects) {
-    // Stronger effect: portal blast + page shake
+  if (portal) {
     portal.classList.add('magical-explosion');
     document.body.classList.add('magical-screen-shake');
     
-    // Remove classes after animation with proper cleanup
     setTimeout(() => {
       portal.classList.remove('magical-explosion');
       document.body.classList.remove('magical-screen-shake');
       isExploding.value = false;
-    }, 1200);
+    }, 800); // Reduced duration from 1200ms
   } else {
-    // Fallback in case portal is not found
     setTimeout(() => {
       isExploding.value = false;
-    }, 1200);
+    }, 800);
   }
   
-  // Create optimized magical burst (always show)
-  if (showMainEffects) {
-    createEnhancedMagicalBurst(portal as HTMLElement | null);
-  }
+  // Create optimized magical burst
+  createOptimizedMagicalBurst(portal as HTMLElement | null);
 };
 
-const createEnhancedMagicalBurst = (anchor?: HTMLElement | null) => {
+const createOptimizedMagicalBurst = (anchor?: HTMLElement | null) => {
   const container = anchor || document.querySelector('.magical-cta');
-  if (!container) {
-    console.warn('No container found for magical burst effect');
-    return;
-  }
+  if (!container) return;
   
-  // Create document fragment for better performance
-  const fragment = document.createDocumentFragment();
-  const burstSymbols = ['✨', '⭐', '💫', '🌟', '⚡', '✦', '💎', '🔥', '⭐', '🌠'];
+  const burstSymbols = ['✨', '⭐', '💫', '🌟']; // Reduced symbols
   
-  // Create multiple waves of magical elements
-  for (let wave = 0; wave < 3; wave++) {
+  // Single wave with fewer particles for better performance
+  for (let i = 0; i < 6; i++) { // Reduced from 8 particles
+    const element = document.createElement('div');
+    element.innerHTML = burstSymbols[Math.floor(Math.random() * burstSymbols.length)];
+    element.className = 'magical-burst-particle-enhanced';
+    
+    // Simplified positioning
+    element.style.cssText = `
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+      --start-x: 50%;
+      --start-y: 50%;
+      --end-x: ${(Math.random() - 0.5) * 400}px;
+      --end-y: ${(Math.random() - 0.5) * 400}px;
+      --rotation: ${Math.random() * 720}deg;
+      --scale: ${(Math.random() * 1.2 + 0.8)};
+      --hue: ${(Math.random() * 60 + 240)};
+    `;
+    
+    container.appendChild(element);
+    
+    // Faster cleanup
     setTimeout(() => {
-      for (let i = 0; i < 8; i++) {
-        const element = document.createElement('div');
-        element.innerHTML = burstSymbols[Math.floor(Math.random() * burstSymbols.length)];
-        element.className = 'magical-burst-particle-enhanced';
-        
-        // Optimized positioning with CSS custom properties
-        // Emit from center of the portal
-        element.style.setProperty('--start-x', '50%');
-        element.style.setProperty('--start-y', '50%');
-        element.style.setProperty('--end-x', (Math.random() - 0.5) * 600 + 'px');
-        element.style.setProperty('--end-y', (Math.random() - 0.5) * 600 + 'px');
-        element.style.setProperty('--rotation', Math.random() * 1080 + 'deg');
-        element.style.setProperty('--scale', (Math.random() * 1.8 + 0.6).toString());
-        element.style.setProperty('--hue', (Math.random() * 90 + 240).toString()); // broader purple-blue range
-        
-        // Force immediate visibility
-        element.style.position = 'absolute';
-        element.style.zIndex = '1000';
-        element.style.pointerEvents = 'none';
-        
-        container.appendChild(element);
-        
-        // Cleanup with proper memory management
-        setTimeout(() => {
-          if (element.parentNode) {
-            element.parentNode.removeChild(element);
-          }
-        }, 3500); // Slightly longer to ensure animation completes
-      }
-    }, wave * 200);
+      element.remove();
+    }, 2500); // Reduced from 3500ms
   }
 };
 
 onMounted(() => {
   initSoundPreference();
-  initializeAudio();
-  
-  // Detect device type for proper magic effects
   detectDevice();
   
-  // Add cursor tracking for magical trail (desktop only)
+  // Initialize audio context early for better user experience
+  initializeAudioContext();
+  
+  // Add throttled cursor tracking for desktop only
   if (!isMobile.value) {
-    document.addEventListener('mousemove', updateCursorPosition);
+    document.addEventListener('mousemove', updateCursorPosition, { passive: true });
+    cursorTrackingActive.value = true;
   }
   
-  // Handle window resize for device detection
-  window.addEventListener('resize', detectDevice);
-  
-  // Add some initial sparkle to the crystal
-  setTimeout(() => {
-    const crystal = document.querySelector('.magical-crystal');
-    if (crystal) {
-      crystal.classList.add('initial-sparkle');
-      // Play a gentle welcome sound
-      createMagicalTone(523, 1.5, 'hover'); // C5 note
-    }
-  }, 1000);
-  
-  // Enable audio on first user interaction (required by browsers)
-  const enableAudio = () => {
-    if (audioContext.value && audioContext.value.state === 'suspended') {
-      audioContext.value.resume();
-    }
-    document.removeEventListener('click', enableAudio);
-    document.removeEventListener('touchstart', enableAudio);
+  // Optimized resize handler with debouncing
+  let resizeTimeout: number | null = null;
+  const handleResize = () => {
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    resizeTimeout = window.setTimeout(detectDevice, 150);
   };
+  window.addEventListener('resize', handleResize, { passive: true });
   
-  document.addEventListener('click', enableAudio);
-  document.addEventListener('touchstart', enableAudio);
-  
-  // Cleanup on unmount
+  // Cleanup function
   return () => {
-    document.removeEventListener('mousemove', updateCursorPosition);
-    document.removeEventListener('click', enableAudio);
-    document.removeEventListener('touchstart', enableAudio);
-    window.removeEventListener('resize', detectDevice);
+    if (cursorTrackingActive.value) {
+      document.removeEventListener('mousemove', updateCursorPosition);
+    }
+    window.removeEventListener('resize', handleResize);
+    if (resizeTimeout) clearTimeout(resizeTimeout);
+    if (cursorThrottle) clearTimeout(cursorThrottle);
+    if (magicThrottle) clearTimeout(magicThrottle);
   };
 });
 
-// Play soft transition sound when navigating away from cover page
-onBeforeUnmount(() => {
-  if (soundEnabled.value) {
-    createMagicalTone(330, 0.5, 'hover'); // Soft transition sound
-  }
-});
+// Removed onBeforeUnmount sound effect for better performance
 </script>

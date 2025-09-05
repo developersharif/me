@@ -1,11 +1,116 @@
 /* Extracted styles from CoverPage.vue for reuse and scalability */
-/* Performance optimizations */
-* {
-  will-change: auto;
+/* Performance optimizations and reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .magical-ring-outer,
+  .magical-ring-middle,
+  .magical-ring-inner,
+  .magical-symbol,
+  .sparkle-enhanced,
+  .magical-wisp,
+  .magical-particle-enhanced,
+  .floating-particles-container::before,
+  .floating-particles-container::after {
+    animation: none !important;
+  }
 }
-.magical-cta * {
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
+
+/* Enhanced gamified visual feedback animations */
+@keyframes gamified-pulse {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: brightness(1) hue-rotate(0deg);
+  }
+  25% {
+    transform: scale(1.05) rotate(2deg);
+    filter: brightness(1.1) hue-rotate(10deg);
+  }
+  50% {
+    transform: scale(1.1) rotate(0deg);
+    filter: brightness(1.2) hue-rotate(20deg);
+  }
+  75% {
+    transform: scale(1.05) rotate(-2deg);
+    filter: brightness(1.1) hue-rotate(10deg);
+  }
+}
+
+@keyframes level-up-glow {
+  0% {
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(147, 51, 234, 0.8),
+      0 0 60px rgba(255, 215, 0, 0.6);
+    transform: scale(1.1);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(147, 51, 234, 0.3);
+    transform: scale(1);
+  }
+}
+
+/* Interactive hover states with better feedback */
+.magical-symbol:hover {
+  animation: gamified-pulse 0.6s ease-in-out;
+  z-index: 10;
+}
+
+.sparkle-enhanced:hover {
+  animation: gamified-pulse 0.4s ease-in-out;
+  transform: scale(1.2);
+}
+
+/* Magic level visual feedback */
+.magical-cta[data-magic-level="3"] .magical-crystal,
+.magical-cta[data-magic-level="6"] .magical-crystal,
+.magical-cta[data-magic-level="9"] .magical-crystal {
+  animation: level-up-glow 1s ease-in-out;
+}
+
+/* GPU acceleration hints for better performance */
+.magical-portal,
+.magical-crystal,
+.magical-ring-outer,
+.magical-ring-middle,
+.magical-ring-inner {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* CSS-only floating particles for better performance */
+.floating-particles-container::before,
+.floating-particles-container::after {
+  content: "";
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.4) 0%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  animation: float 5s ease-in-out infinite;
+}
+
+.floating-particles-container::before {
+  left: 20%;
+  top: 30%;
+  animation-delay: 0s;
+}
+
+.floating-particles-container::after {
+  left: 70%;
+  top: 60%;
+  animation-delay: 2.5s;
 }
 
 /* Keyframes and animations */
@@ -294,7 +399,7 @@
     ),
     linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(147, 51, 234, 0.3));
   background-clip: padding-box;
-  animation: magical-ring-rotate 12s linear infinite;
+  animation: magical-ring-rotate 20s linear infinite;
   filter: drop-shadow(0 0 20px rgba(147, 51, 234, 0.6));
   border-radius: 50%;
 }
@@ -305,7 +410,7 @@
     rgba(147, 51, 234, 0.2) 0%,
     transparent 60%
   );
-  animation: magical-ring-counter-rotate 8s linear infinite;
+  animation: magical-ring-counter-rotate 16s linear infinite;
   border-radius: 50%;
 }
 .magical-ring-inner {

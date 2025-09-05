@@ -10,7 +10,7 @@
            @mouseenter="$emit('symbol-hover', i)">
         <span class="symbol-glyph">{{ symbol }}</span>
       </div>
-      <div v-for="i in 6" :key="`wisp-${i}`" class="absolute magical-wisp" :class="`wisp-${i}`" :style="{ '--wisp-delay': i * 0.8 + 's' }">
+      <div v-for="i in 3" :key="`wisp-${i}`" class="absolute magical-wisp" :class="`wisp-${i}`" :style="{ '--wisp-delay': i * 1.2 + 's' }">
         <div class="wisp-trail"></div>
       </div>
     </div>
@@ -28,8 +28,8 @@
           <div class="text-4xl magical-emoji">🔮</div>
         </div>
       </div>
-      <div v-for="i in 16" :key="`sparkle-${i}`" class="absolute sparkle-enhanced" :class="`sparkle-${i}`"
-           :style="{ '--sparkle-delay': i * 0.15 + 's', '--sparkle-size': (Math.random() * 0.5 + 0.8) + 'rem', '--sparkle-intensity': sparkleIntensity }"
+      <div v-for="i in 8" :key="`sparkle-${i}`" class="absolute sparkle-enhanced" :class="`sparkle-${i}`"
+           :style="{ '--sparkle-delay': i * 0.25 + 's', '--sparkle-size': (Math.random() * 0.3 + 0.9) + 'rem', '--sparkle-intensity': sparkleIntensity }"
            @mouseenter="$emit('sparkle-hover', i)">
         <span class="sparkle-glyph">{{ sparkleSymbols[i % sparkleSymbols.length] }}</span>
       </div>
@@ -44,7 +44,7 @@
     </div>
 
     <div class="absolute inset-0 pointer-events-none magical-particles-container">
-      <div v-for="i in 12" :key="`particle-${i}`" class="absolute magical-particle-enhanced" :class="`particle-${i}`" :style="{ '--particle-delay': i * 0.2 + 's' }">
+      <div v-for="i in 6" :key="`particle-${i}`" class="absolute magical-particle-enhanced" :class="`particle-${i}`" :style="{ '--particle-delay': i * 0.4 + 's' }">
         <div class="particle-core"></div>
         <div class="particle-trail"></div>
       </div>

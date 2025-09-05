@@ -26,6 +26,7 @@
 
 <script setup lang="ts">
 import AppIcon from '../AppIcon.vue';
+
 defineProps<{ enabled: boolean }>();
 defineEmits<{ (e: 'toggle'): void }>();
 </script>

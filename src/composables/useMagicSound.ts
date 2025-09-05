@@ -1,190 +1,250 @@
 import { ref } from 'vue';
 
-export type MagicalToneType = 'hover' | 'activate' | 'explosion';
-
 export function useMagicSound() {
-  const audioContext = ref<AudioContext | null>(null);
-  const masterVolume = ref(0.3);
   const soundEnabled = ref(true);
+  const audioContext = ref<AudioContext | null>(null);
+  const isAudioInitialized = ref(false);
 
   const initSoundPreference = () => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('portfolio-sound-enabled') : null;
     if (saved !== null) soundEnabled.value = saved === 'true';
   };
 
-  const saveSoundPreference = () => {
+  const initializeAudioContext = async () => {
+    if (typeof window === 'undefined' || audioContext.value) return;
+    
+    try {
+      // @ts-ignore - webkitAudioContext for Safari compatibility
+      audioContext.value = new (window.AudioContext || window.webkitAudioContext)();
+      
+      // Resume context if it's suspended (required by browser policies)
+      if (audioContext.value.state === 'suspended') {
+        await audioContext.value.resume();
+      }
+      
+      isAudioInitialized.value = true;
+    } catch (error) {
+      console.warn('Failed to initialize audio context:', error);
+      soundEnabled.value = false;
+    }
+  };
+
+  const toggleSound = async () => {
+    soundEnabled.value = !soundEnabled.value;
+    
     if (typeof window !== 'undefined') {
       localStorage.setItem('portfolio-sound-enabled', soundEnabled.value.toString());
     }
-  };
-
-  const initializeAudio = () => {
-    if (!audioContext.value && typeof window !== 'undefined') {
-      try {
-        // @ts-expect-error - webkitAudioContext for Safari
-        audioContext.value = new (window.AudioContext || window.webkitAudioContext)();
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        console.warn('Web Audio API not supported:', error);
-        soundEnabled.value = false;
-      }
+    
+    // Initialize audio context when enabling sound
+    if (soundEnabled.value && !isAudioInitialized.value) {
+      await initializeAudioContext();
+      // Play a pleasant activation chord
+      setTimeout(() => playMagicalChord(523, 0.4, 0.8), 100); // C5
+      setTimeout(() => playMagicalChord(659, 0.4, 0.6), 200); // E5
+      setTimeout(() => playMagicalChord(783, 0.6, 0.8), 300); // G5
+    } else if (!soundEnabled.value) {
+      // Play a gentle farewell tone
+      playMagicalChord(392, 0.5, 0.6); // G4
     }
   };
 
-  const createMagicalTone = (frequency: number, duration: number, type: MagicalToneType = 'hover') => {
-    if (!audioContext.value || !soundEnabled.value) return;
-
-    const oscillator = audioContext.value.createOscillator();
-    const gainNode = audioContext.value.createGain();
-    const filter = audioContext.value.createBiquadFilter();
-
-    oscillator.connect(filter);
-    filter.connect(gainNode);
-    gainNode.connect(audioContext.value.destination);
-
-    switch (type) {
-      case 'hover': {
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(frequency, audioContext.value.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 1.5, audioContext.value.currentTime + duration);
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800, audioContext.value.currentTime);
-        gainNode.gain.setValueAtTime(0, audioContext.value.currentTime);
-        gainNode.gain.linearRampToValueAtTime(masterVolume.value * 0.1, audioContext.value.currentTime + 0.05);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.value.currentTime + duration);
-        break;
+  // Enhanced gamified audio functions
+  const playMagicalChord = async (frequency: number, duration: number = 0.3, intensity: number = 1) => {
+    if (!soundEnabled.value || typeof window === 'undefined') return;
+    
+    try {
+      // Initialize audio context if needed
+      if (!isAudioInitialized.value) {
+        await initializeAudioContext();
       }
-      case 'activate': {
-        oscillator.type = 'triangle';
-        oscillator.frequency.setValueAtTime(frequency, audioContext.value.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 2, audioContext.value.currentTime + duration * 0.3);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.8, audioContext.value.currentTime + duration);
-        filter.type = 'bandpass';
-        filter.frequency.setValueAtTime(600, audioContext.value.currentTime);
-        filter.Q.setValueAtTime(5, audioContext.value.currentTime);
-        gainNode.gain.setValueAtTime(0, audioContext.value.currentTime);
-        gainNode.gain.linearRampToValueAtTime(masterVolume.value * 0.15, audioContext.value.currentTime + 0.1);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.value.currentTime + duration);
-        break;
+      
+      if (!audioContext.value) return;
+      
+      // Resume context if suspended
+      if (audioContext.value.state === 'suspended') {
+        await audioContext.value.resume();
       }
-      case 'explosion': {
-        oscillator.type = 'sawtooth';
-        oscillator.frequency.setValueAtTime(frequency, audioContext.value.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(frequency * 0.3, audioContext.value.currentTime + duration);
-        filter.type = 'highpass';
-        filter.frequency.setValueAtTime(200, audioContext.value.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(50, audioContext.value.currentTime + duration);
-        gainNode.gain.setValueAtTime(0, audioContext.value.currentTime);
-        gainNode.gain.linearRampToValueAtTime(masterVolume.value * 0.25, audioContext.value.currentTime + 0.02);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.value.currentTime + duration);
-        break;
-      }
+      
+      // Create harmonic chord for richer sound
+      const harmonics = [1, 1.25, 1.5, 2]; // Major chord harmonics
+      const baseVolume = 0.08 * intensity;
+      
+      harmonics.forEach((harmonic, index) => {
+        setTimeout(() => {
+          const oscillator = audioContext.value!.createOscillator();
+          const gainNode = audioContext.value!.createGain();
+          const filter = audioContext.value!.createBiquadFilter();
+
+          oscillator.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(audioContext.value!.destination);
+
+          // Different wave types for harmonic richness
+          const waveTypes: OscillatorType[] = ['sine', 'triangle', 'square'];
+          oscillator.type = waveTypes[index % waveTypes.length];
+          oscillator.frequency.value = frequency * harmonic;
+          
+          // Add filtering for warmth
+          filter.type = 'lowpass';
+          filter.frequency.value = 2000 + (intensity * 1000);
+          filter.Q.value = 1;
+          
+          // Smooth volume envelope
+          const volume = baseVolume * (1 - index * 0.2); // Decrease volume for higher harmonics
+          gainNode.gain.setValueAtTime(0, audioContext.value!.currentTime);
+          gainNode.gain.linearRampToValueAtTime(volume, audioContext.value!.currentTime + 0.02);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.value!.currentTime + duration);
+          
+          oscillator.start(audioContext.value!.currentTime);
+          oscillator.stop(audioContext.value!.currentTime + duration);
+        }, index * 50); // Slight delay for arpeggio effect
+      });
+    } catch (error) {
+      console.warn('Failed to play magical chord:', error);
     }
-
-    oscillator.start(audioContext.value.currentTime);
-    oscillator.stop(audioContext.value.currentTime + duration);
   };
 
-  const playMagicalChord = (baseFreq: number, duration: number) => {
+  const playSparkleSound = async (pitch: number = 800) => {
     if (!soundEnabled.value) return;
-    const harmonics = [1, 1.25, 1.5, 2, 2.5];
-    harmonics.forEach((harmonic, index) => {
+    
+    try {
+      // Quick sparkly sound with multiple frequencies
+      const sparkleFreqs = [pitch, pitch * 1.3, pitch * 1.6, pitch * 2.1];
+      
+      sparkleFreqs.forEach((freq, index) => {
+        setTimeout(() => {
+          playMagicalChord(freq, 0.15, 0.6);
+        }, index * 20); // Very quick succession
+      });
+    } catch (error) {
+      console.warn('Failed to play sparkle sound:', error);
+    }
+  };
+
+  const playExplosionSound = async () => {
+    if (!soundEnabled.value) return;
+    
+    try {
+      // Multi-layered explosion effect
+      // 1. Low rumble
+      playMagicalChord(80, 0.8, 1.5);
+      
+      // 2. Mid explosion crack
+      setTimeout(() => playMagicalChord(200, 0.4, 1.2), 100);
+      setTimeout(() => playMagicalChord(300, 0.3, 1.0), 150);
+      
+      // 3. High sparkle cascade
       setTimeout(() => {
-        createMagicalTone(baseFreq * harmonic, duration * 0.8, 'activate');
-      }, index * 50);
-    });
+        for (let i = 0; i < 6; i++) {
+          setTimeout(() => {
+            const freq = 800 + Math.random() * 800;
+            playMagicalChord(freq, 0.3, 0.8);
+          }, i * 80);
+        }
+      }, 200);
+      
+      // 4. Final resonance
+      setTimeout(() => playMagicalChord(440, 1.0, 0.6), 600);
+    } catch (error) {
+      console.warn('Failed to play explosion sound:', error);
+    }
   };
 
-  const playSparkleSound = () => {
+  const playHoverSound = async (index: number = 0) => {
     if (!soundEnabled.value) return;
-    const frequencies = [800, 1000, 1200, 1500];
-    frequencies.forEach((freq, index) => {
-      setTimeout(() => createMagicalTone(freq, 0.3, 'hover'), index * 30);
-    });
+    
+    const baseFreq = 440 + (index * 60); // Different pitch per element
+    const notes = [440, 523, 659, 783, 880]; // C4, C5, E5, G5, A5 - pentatonic scale
+    const freq = notes[index % notes.length];
+    
+    playMagicalChord(freq, 0.25, 0.7);
   };
 
-  const playExplosionSound = () => {
+  const playMagicLevelUp = async (level: number) => {
     if (!soundEnabled.value) return;
-    createMagicalTone(60, 1.2, 'explosion');
+    
+    // Ascending arpeggio for level up
+    const scale = [440, 494, 554, 659, 740]; // A major pentatonic
+    scale.forEach((freq, index) => {
+      setTimeout(() => {
+        playMagicalChord(freq, 0.4, 0.8);
+      }, index * 120);
+    });
+    
+    // Final chord
     setTimeout(() => {
-      for (let i = 0; i < 5; i++) {
-        setTimeout(() => createMagicalTone(200 + Math.random() * 300, 0.4, 'explosion'), i * 100);
-      }
-    }, 100);
-    setTimeout(() => {
-      for (let i = 0; i < 8; i++) {
-        setTimeout(() => createMagicalTone(800 + Math.random() * 800, 0.6, 'hover'), i * 80);
-      }
-    }, 200);
+      playMagicalChord(880, 0.8, 1.0); // High A
+    }, 600);
   };
 
-  const createRandomPageSound = (pageIndex: number) => {
-    if (!soundEnabled.value || !audioContext.value) return;
-    const pageSoundThemes = [
-      { baseFreq: 440, harmonics: [1, 1.25, 1.5], type: 'sine', filterFreq: 1200 },
-      { baseFreq: 523, harmonics: [1, 1.2, 1.6], type: 'triangle', filterFreq: 1000 },
-      { baseFreq: 659, harmonics: [1, 1.33, 1.8], type: 'square', filterFreq: 1500 },
-      { baseFreq: 349, harmonics: [1, 1.4, 2.1], type: 'sawtooth', filterFreq: 900 },
-      { baseFreq: 392, harmonics: [1, 1.5, 2.0], type: 'sine', filterFreq: 1100 },
-      { baseFreq: 494, harmonics: [1, 1.26, 1.68], type: 'triangle', filterFreq: 1300 }
-    ];
+  const playPortalActivate = async () => {
+    if (!soundEnabled.value) return;
+    
+    // Rising portal sound
+    const startFreq = 220;
+    const endFreq = 880;
+    const steps = 8;
+    
+    for (let i = 0; i < steps; i++) {
+      const freq = startFreq + ((endFreq - startFreq) * (i / steps));
+      setTimeout(() => {
+        playMagicalChord(freq, 0.3, 0.6 + (i * 0.1));
+      }, i * 60);
+    }
+  };
 
-    const theme = (pageSoundThemes as any)[pageIndex] || {
-      baseFreq: 330 + (Math.random() * 400),
-      harmonics: [1, 1.2 + Math.random() * 0.3, 1.5 + Math.random() * 0.5],
-      type: ['sine', 'triangle', 'square'][Math.floor(Math.random() * 3)] as OscillatorType,
-      filterFreq: 800 + Math.random() * 800
+  const playPortalDeactivate = async () => {
+    if (!soundEnabled.value) return;
+    
+    // Falling portal sound
+    const startFreq = 880;
+    const endFreq = 220;
+    const steps = 6;
+    
+    for (let i = 0; i < steps; i++) {
+      const freq = startFreq - ((startFreq - endFreq) * (i / steps));
+      setTimeout(() => {
+        playMagicalChord(freq, 0.25, 0.8 - (i * 0.1));
+      }, i * 80);
+    }
+  };
+
+  // Initialize audio on first user interaction
+  const setupAudioOnInteraction = () => {
+    const handleFirstInteraction = async () => {
+      if (soundEnabled.value && !isAudioInitialized.value) {
+        await initializeAudioContext();
+      }
+      
+      // Remove listeners after first interaction
+      document.removeEventListener('click', handleFirstInteraction);
+      document.removeEventListener('touchstart', handleFirstInteraction);
+      document.removeEventListener('keydown', handleFirstInteraction);
     };
 
-    const randomVariation = 0.95 + Math.random() * 0.1;
-    const baseFreq = theme.baseFreq * randomVariation;
-
-    theme.harmonics.forEach((harmonic: number, index: number) => {
-      setTimeout(() => {
-        const oscillator = audioContext.value!.createOscillator();
-        const gainNode = audioContext.value!.createGain();
-        const filter = audioContext.value!.createBiquadFilter();
-        oscillator.connect(filter);
-        filter.connect(gainNode);
-        gainNode.connect(audioContext.value!.destination);
-        oscillator.type = theme.type as OscillatorType;
-        oscillator.frequency.setValueAtTime(baseFreq * harmonic, audioContext.value!.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(baseFreq * harmonic * 0.85, audioContext.value!.currentTime + 0.8);
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(theme.filterFreq, audioContext.value!.currentTime);
-        filter.frequency.exponentialRampToValueAtTime(theme.filterFreq * 0.7, audioContext.value!.currentTime + 0.8);
-        const volume = masterVolume.value * (0.04 + Math.random() * 0.03);
-        gainNode.gain.setValueAtTime(0, audioContext.value!.currentTime);
-        gainNode.gain.linearRampToValueAtTime(volume, audioContext.value!.currentTime + 0.1);
-        gainNode.gain.linearRampToValueAtTime(volume * 0.7, audioContext.value!.currentTime + 0.5);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.value!.currentTime + 0.8);
-        oscillator.start(audioContext.value!.currentTime);
-        oscillator.stop(audioContext.value!.currentTime + 0.8);
-      }, index * (50 + Math.random() * 30));
-    });
+    document.addEventListener('click', handleFirstInteraction, { once: true });
+    document.addEventListener('touchstart', handleFirstInteraction, { once: true });
+    document.addEventListener('keydown', handleFirstInteraction, { once: true });
   };
 
-  const toggleSound = () => {
-    soundEnabled.value = !soundEnabled.value;
-    saveSoundPreference();
-    if (soundEnabled.value) {
-      initializeAudio();
-      setTimeout(() => createMagicalTone(523, 0.5, 'hover'), 100);
-    }
-  };
+  // Setup interaction listeners on composable creation
+  if (typeof window !== 'undefined') {
+    setupAudioOnInteraction();
+  }
 
   return {
-    audioContext,
-    masterVolume,
     soundEnabled,
+    isAudioInitialized,
     initSoundPreference,
-    saveSoundPreference,
-    initializeAudio,
+    initializeAudioContext,
     toggleSound,
-    createMagicalTone,
     playMagicalChord,
     playSparkleSound,
     playExplosionSound,
-    createRandomPageSound,
-  } as const;
+    playHoverSound,
+    playMagicLevelUp,
+    playPortalActivate,
+    playPortalDeactivate
+  };
 }
