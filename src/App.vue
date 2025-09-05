@@ -1,5 +1,8 @@
 <template>
-  <div class="h-screen w-full max-w-full overflow-hidden flex flex-col">
+  <div class="h-screen w-full max-w-full overflow-hidden flex flex-col relative z-10">
+    <!-- Calm background for desktop and tablet only -->
+    <CalmBackground />
+    
     <header
       class="sticky top-0 z-50 px-6 py-3 sm:py-4 flex items-center justify-between border-b border-white/10 flex-shrink-0
              bg-black/50 backdrop-blur-md text-white shadow-lg"
@@ -27,6 +30,7 @@
 // @ts-nocheck
 import { ref, computed, onMounted } from 'vue';
 import Book from './components/Book.vue';
+import CalmBackground from './components/CalmBackground.vue';
 
 import CoverPage from './pages/CoverPage.vue';
 import AboutPage from './pages/AboutPage.vue';

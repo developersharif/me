@@ -1395,8 +1395,19 @@ defineExpose({
 .book-background {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, var(--bg-from), var(--bg-via));
-  backdrop-filter: blur(var(--blur-bg));
+  /* Enhanced transparency for desktop/tablet to show calm background */
+  /* background: linear-gradient(135deg, 
+    rgba(15, 15, 35, 0.85), 
+    rgba(26, 26, 58, 0.85)
+  );
+  backdrop-filter: blur(var(--blur-bg)); */
+}
+
+/* Mobile keeps original background */
+@media (max-width: 767px) {
+  .book-background {
+    background: linear-gradient(135deg, var(--bg-from), var(--bg-via));
+  }
 }
 
 .book-pages {
