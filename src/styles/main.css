@@ -8,6 +8,32 @@
   --book-surface: #0f172a;
 }
 
+/* Mobile performance optimizations */
+@media (max-width: 767px) {
+  * {
+    /* Disable expensive 3D transforms on mobile */
+    transform-style: flat !important;
+    /* Reduce GPU usage */
+    will-change: auto !important;
+    /* Disable expensive filters on mobile */
+    backdrop-filter: none !important;
+  }
+
+  /* Restore necessary transforms for specific elements */
+  .mobile-page-container,
+  .flip-page,
+  .flip-overlay {
+    transform-style: flat;
+    will-change: auto;
+  }
+
+  /* Optimize scrolling performance */
+  .mobile-page {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
 html,
 body,
 #app {

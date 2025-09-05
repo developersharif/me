@@ -542,16 +542,27 @@ function setFlipPageForDrag(progress: number) {
   const curve = Math.sin(Math.PI * Math.min(1, Math.max(0, progress))) * 1.2;
   const twist = (dir === 'forward' ? 0.5 : -0.5) * Math.sin(progress * Math.PI) * 0.6;
 
-  G.set(flipPage, {
-    rotateY,
-    rotateX: dir === 'forward' ? -curve : curve,
-    rotateZ: twist,
-    transformOrigin: '0px center',
-    transformStyle: 'preserve-3d',
-    perspective: 1200,
-    backfaceVisibility: 'hidden',
-    zIndex: 30,
-  });
+  // Use simpler transforms on mobile devices to prevent blinking
+  if (screenSize.value.isMobile) {
+    G.set(flipPage, {
+      rotateY,
+      transformOrigin: '0px center',
+      transformStyle: 'flat',
+      backfaceVisibility: 'hidden',
+      zIndex: 30,
+    });
+  } else {
+    G.set(flipPage, {
+      rotateY,
+      rotateX: dir === 'forward' ? -curve : curve,
+      rotateZ: twist,
+      transformOrigin: '0px center',
+      transformStyle: 'preserve-3d',
+      perspective: 1200,
+      backfaceVisibility: 'hidden',
+      zIndex: 30,
+    });
+  }
 
   if (shadow) (gsap as any).set(shadow, { opacity: 0.12 + 0.22 * Math.sin(progress * Math.PI) });
   if (gloss) (gsap as any).set(gloss, { opacity: 0.08 + 0.1 * Math.sin(progress * Math.PI), x: (dir === 'forward' ? -80 + 160 * progress : 80 - 160 * progress) });
@@ -576,27 +587,53 @@ function animateDragCompletion(complete: boolean, duration: number) {
   const startY = dir === 'forward' ? -180 * currentProgress : 180 * (1 - currentProgress);
   const endY = complete ? (dir === 'forward' ? -180 : 0) : (dir === 'forward' ? 0 : 180);
 
-  const tl = G.timeline({
-    defaults: { duration, ease: 'power2.out' },
-    onComplete: () => {
-      const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
-      if (complete) {
-        currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
+  // Use simplified animation on mobile
+  if (screenSize.value.isMobile) {
+    const tl = G.timeline({
+      defaults: { duration, ease: 'power2.out' },
+      onComplete: () => {
+        const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
+        if (complete) {
+          currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
+        }
+        drag.value.active = false;
+        isFlipping.value = false;
+        nextTick(() => {
+          mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+          desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+          measureAndApplySpiralMetrics();
+        });
       }
-      drag.value.active = false;
-      isFlipping.value = false;
-      nextTick(() => {
-        mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-        desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-        measureAndApplySpiralMetrics();
-      });
-    }
-  });
+    });
+    
+    tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
+    if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
+    if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
+    if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
+  } else {
+    // Complex animation for desktop
+    const tl = G.timeline({
+      defaults: { duration, ease: 'power2.out' },
+      onComplete: () => {
+        const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
+        if (complete) {
+          currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
+        }
+        drag.value.active = false;
+        isFlipping.value = false;
+        nextTick(() => {
+          mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+          desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+          measureAndApplySpiralMetrics();
+        });
+      }
+    });
 
-  tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
-  if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
-  if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
-  if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
+    tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
+    if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
+    if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
+    if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
+  }
 }
 
 const nextPage = async () => {
@@ -647,17 +684,30 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
   // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
   const spiralBindingOrigin = `0px center`;
       
-      G.set(flipPage, { 
-        rotateY: 0, 
-        rotateX: 0,
-        transformOrigin: spiralBindingOrigin, 
-        transformStyle: 'preserve-3d', 
-        perspective: 1000, 
-        backfaceVisibility: 'hidden',
-        boxShadow: 'none',
-        filter: 'brightness(1)',
-        zIndex: 30
-      });
+      // Use simpler transforms on mobile to prevent blinking
+      if (screenSize.value.isMobile) {
+        G.set(flipPage, { 
+          rotateY: 0, 
+          transformOrigin: spiralBindingOrigin, 
+          transformStyle: 'flat', 
+          backfaceVisibility: 'hidden',
+          boxShadow: 'none',
+          filter: 'brightness(1)',
+          zIndex: 30
+        });
+      } else {
+        G.set(flipPage, { 
+          rotateY: 0, 
+          rotateX: 0,
+          transformOrigin: spiralBindingOrigin, 
+          transformStyle: 'preserve-3d', 
+          perspective: 1000, 
+          backfaceVisibility: 'hidden',
+          boxShadow: 'none',
+          filter: 'brightness(1)',
+          zIndex: 30
+        });
+      }
 
   const tl = G.timeline({
         onComplete: () => {
@@ -675,73 +725,94 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
   // Make the quick jump snappier but still smooth
   tl.timeScale(1.25);
 
-      // Quick flip - STRICTLY anchored to coil binding, NO horizontal movement
-      if (direction === 'forward') {
-        tl.to(flipPage, {
-          rotateY: -45, // Quick lift
-          rotateX: -1.2,
-          rotateZ: 0.4,
-          // NO x translation - stay at spiral binding
-          duration: 0.06,
-          ease: 'power3.out',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
-        })
-        .to(flipPage, {
-          rotateY: -135, // Fast sweep
-          rotateX: -0.8,
-          rotateZ: 0.2,
-          // NO horizontal drift
-          duration: 0.08,
-          ease: 'sine.inOut',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-          filter: 'brightness(1.01) contrast(1.015)'
-        })
-        .to(flipPage, {
-          rotateY: -180, // Quick settle
-          rotateX: 0,
-          rotateZ: 0,
-          // Perfect binding anchor
-          duration: 0.06,
-          ease: 'power3.out',
-          boxShadow: 'none',
-          filter: 'brightness(1) contrast(1)'
-        });
+      // Use simpler animation on mobile to prevent blinking
+      if (screenSize.value.isMobile) {
+        // Simple 2D flip for mobile
+        if (direction === 'forward') {
+          tl.to(flipPage, {
+            rotateY: -180,
+            duration: 0.25,
+            ease: 'power2.inOut'
+          });
+        } else {
+          tl.fromTo(flipPage, {
+            rotateY: 180
+          }, {
+            rotateY: 0,
+            duration: 0.25,
+            ease: 'power2.inOut'
+          });
+        }
       } else {
-        // Backward quick flip: PURE reverse motion, NO drift
-        tl.fromTo(flipPage, {
-          rotateY: 180, // Start from behind
-          rotateX: 0,
-          rotateZ: 0
-          // NO positioning - binding-anchored only
-        }, {
-          rotateY: 135, // Quick reverse sweep
-          rotateX: 0.8,
-          rotateZ: -0.2,
-          // Stay at spiral binding
-          duration: 0.08,
-          ease: 'sine.inOut',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-          filter: 'brightness(1.01) contrast(1.015)'
-        })
-        .to(flipPage, {
-          rotateY: 45, // Quick lift (reverse)
-          rotateX: 1.2,
-          rotateZ: -0.4,
-          // NO horizontal movement
-          duration: 0.06,
-          ease: 'power3.out',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
-        })
-        .to(flipPage, {
-          rotateY: 0, // Final forward position
-          rotateX: 0,
-          rotateZ: 0,
-          // Anchored to binding
-          duration: 0.06,
-          ease: 'power3.out',
-          boxShadow: 'none',
-          filter: 'brightness(1) contrast(1)'
-        });
+        // Complex 3D animation for desktop
+        // Quick flip - STRICTLY anchored to coil binding, NO horizontal movement
+        if (direction === 'forward') {
+          tl.to(flipPage, {
+            rotateY: -45, // Quick lift
+            rotateX: -1.2,
+            rotateZ: 0.4,
+            // NO x translation - stay at spiral binding
+            duration: 0.06,
+            ease: 'power3.out',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+          })
+          .to(flipPage, {
+            rotateY: -135, // Fast sweep
+            rotateX: -0.8,
+            rotateZ: 0.2,
+            // NO horizontal drift
+            duration: 0.08,
+            ease: 'sine.inOut',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            filter: 'brightness(1.01) contrast(1.015)'
+          })
+          .to(flipPage, {
+            rotateY: -180, // Quick settle
+            rotateX: 0,
+            rotateZ: 0,
+            // Perfect binding anchor
+            duration: 0.06,
+            ease: 'power3.out',
+            boxShadow: 'none',
+            filter: 'brightness(1) contrast(1)'
+          });
+        } else {
+          // Backward quick flip: PURE reverse motion, NO drift
+          tl.fromTo(flipPage, {
+            rotateY: 180, // Start from behind
+            rotateX: 0,
+            rotateZ: 0
+            // NO positioning - binding-anchored only
+          }, {
+            rotateY: 135, // Quick reverse sweep
+            rotateX: 0.8,
+            rotateZ: -0.2,
+            // Stay at spiral binding
+            duration: 0.08,
+            ease: 'sine.inOut',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+            filter: 'brightness(1.01) contrast(1.015)'
+          })
+          .to(flipPage, {
+            rotateY: 45, // Quick lift (reverse)
+            rotateX: 1.2,
+            rotateZ: -0.4,
+            // NO horizontal movement
+            duration: 0.06,
+            ease: 'power3.out',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
+          })
+          .to(flipPage, {
+            rotateY: 0, // Final forward position
+            rotateX: 0,
+            rotateZ: 0,
+            // Anchored to binding
+            duration: 0.06,
+            ease: 'power3.out',
+            boxShadow: 'none',
+            filter: 'brightness(1) contrast(1)'
+          });
+        }
       }
     });
   });
@@ -1346,10 +1417,20 @@ defineExpose({
   border-radius: var(--radius-container);
   overflow: hidden;
   background: var(--color-glass-bg);
-  backdrop-filter: blur(var(--blur-glass));
+  /* Disable expensive effects on mobile to prevent blinking */
+  backdrop-filter: none;
   border: 1px solid var(--color-glass-border);
   flex: 1;
-  transform-style: preserve-3d;
+  /* Simplified transforms for mobile performance */
+  transform-style: flat;
+}
+
+/* Enable backdrop blur only on larger screens */
+@media (min-width: 768px) {
+  .mobile-page-container {
+    backdrop-filter: blur(var(--blur-glass));
+    transform-style: preserve-3d;
+  }
 }
 
 .mobile-page {
@@ -1361,8 +1442,9 @@ defineExpose({
   overflow-x: hidden;
   overscroll-behavior: contain;
   position: relative;
-  transform-style: preserve-3d;
-  will-change: transform;
+  /* Simplified transforms for mobile performance */
+  transform-style: flat;
+  will-change: auto;
   
   /* Custom scrollbar for mobile */
   scrollbar-width: thin;
@@ -1371,6 +1453,14 @@ defineExpose({
   /* Smooth scrolling */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Enable 3D transforms only on larger screens */
+@media (min-width: 768px) {
+  .mobile-page {
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
 }
 
 /* Notebook spiral visuals */
@@ -1783,10 +1873,18 @@ defineExpose({
     height: 100%;
     z-index: 1000;
     pointer-events: none;
-    transform-style: preserve-3d;
+    /* Simplified transforms for mobile performance */
+    transform-style: flat;
     /* Critical: Clip to keep animation within coil binding area */
     clip-path: inset(0); /* Already positioned to start at the spiral's right edge */
     overflow: hidden; /* Ensure nothing escapes the clipped area */
+  }
+  
+  /* Enable 3D transforms only on larger screens */
+  @media (min-width: 768px) {
+    .flip-overlay {
+      transform-style: preserve-3d;
+    }
   }
   
   /* Flip page with proper 3D transforms and realistic styling */
@@ -1796,10 +1894,12 @@ defineExpose({
     height: 100%;
     /* Match the exact book page styling to prevent white blink */
     background: var(--color-glass-bg);
-    backdrop-filter: blur(var(--blur-glass));
+    /* Disable expensive backdrop blur on mobile */
+    backdrop-filter: none;
     border: 1px solid var(--color-glass-border);
     border-radius: var(--radius-container);
-    transform-style: preserve-3d;
+    /* Simplified transforms for mobile performance */
+    transform-style: flat;
     backface-visibility: hidden;
     /* Set transform origin at spiral binding */
   /* Hinge at the overlay's left edge (aligned to spiral right) */
@@ -1813,8 +1913,22 @@ defineExpose({
     background-size: 12px 12px, 8px 8px;
     /* Smooth transitions to prevent blinks */
     transition: none;
-    will-change: transform, box-shadow;
-  }/* Spiral binding visual constraint */
+    will-change: auto;
+    /* Solid background for mobile to prevent transparency flicker */
+    background-color: rgba(15, 23, 42, 0.95);
+  }
+  
+  /* Enable 3D transforms and backdrop blur only on larger screens */
+  @media (min-width: 768px) {
+    .flip-page {
+      transform-style: preserve-3d;
+      will-change: transform, box-shadow;
+      background: var(--color-glass-bg);
+      backdrop-filter: blur(var(--blur-glass));
+    }
+  }
+  
+  /* Spiral binding visual constraint */
 .flip-page::before {
   content: '';
   position: absolute;
