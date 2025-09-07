@@ -376,7 +376,7 @@
       "desc": "C/C++ framework that packages Python/PHP/Node apps into a single executable.",
       "link": "#",
       "repo": "#",
-      "tech": ["C/C++"]
+      "tech": ["C/C++", "private"]
     },
     {
       "title": "PineTalk.com",
@@ -438,7 +438,7 @@
         "dragonflydb",
         " Reactjs(/chat route)"
       ],
-      "image": "assets/images/ridemintnyc.png"
+      "image": "assets/images/tinygram.png"
     },
     {
       "title": "Microcredit Manager",
@@ -464,8 +464,8 @@
     {
       "title": "PHP micro Framework",
       "desc": "Lightweight PHP micro framework for building web applications.",
-      "link": "#",
-      "repo": "#",
+      "link": "https://github.com/grayphp/micro",
+      "repo": "https://github.com/grayphp/micro",
       "tech": ["PHP", "Microservices"]
     },
     {
@@ -478,7 +478,6 @@
       "title": "FriendsClub (Legacy)",
       "desc": "Community social platform rebuilt with PHP & JS after Wapka.",
       "link": "https://web.facebook.com/gvfriendsclub1",
-      "repo": "#",
       "image": "assets/images/friendsclub.jpg",
       "tech": ["core php", "JavaScript"]
     }
