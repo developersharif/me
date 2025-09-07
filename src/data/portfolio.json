@@ -22,12 +22,12 @@
   "about": {
     "header": {
       "title": "Chapter I: My Journey",
-      "subtitle": "From Wapka & FriendsClub to RealBrain & Doplac"
+      "subtitle": "From <a href='https://web.archive.org/web/20180224111700/http://www.wapka.mobi/wap/en/index/PHPSESSID/770236a84fcc103ffd38076c61539286' target='_blank'>Wapka</a> & FriendsClub to RealBrain & Doplac"
     },
     "sections": [
       {
         "title": "Origins (2018): Wapka & FriendsClub",
-        "body": "I first discovered the magic of building for the web through Wapka. Inspired, I created FriendsClub—a small social platform where people could post, chat, and connect. When Wapka shut down, I doubled down on learning to build it all myself. PHP was my starting point, then JavaScript to rebuild FriendsClub from scratch."
+        "body": "I first discovered the magic of building for the web through <a href='https://web.archive.org/web/20081225005834/http://www.wapka.mobi/wapka_index.html' target='_blank'>Wapka</a>. Inspired, I created FriendsClub—a small social platform where people could post, chat, and connect. When <a href='https://web.archive.org/web/20190121055018/http://wapka.mobi/' target='_blank'>Wapka shut down</a>, I doubled down on learning to build it all myself. PHP was my starting point, then JavaScript to rebuild FriendsClub from scratch."
       },
       {
         "title": "Leveling Up",

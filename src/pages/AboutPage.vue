@@ -5,7 +5,7 @@
       <div>
         <p class="text-[10px] uppercase tracking-[0.25em] text-white/50">About</p>
         <h2 class="text-3xl md:text-4xl font-bold text-white">{{ data.header.title }}</h2>
-        <p class="text-white/60 mt-1 text-sm md:text-base">{{ data.header.subtitle }}</p>
+        <p class="text-white/60 mt-1 text-sm md:text-base" v-html="data.header.subtitle"></p>
       </div>
       <img src="/avatar.svg" alt="Avatar" class="hidden sm:block w-12 h-12 rounded-full ring-1 ring-white/10" />
     </header>
@@ -16,7 +16,7 @@
         <!-- Summary -->
         <article v-if="data.sections[0]" class="lg:col-span-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5">
           <h3 class="text-lg md:text-xl font-semibold text-white mb-2">{{ data.sections[0].title }}</h3>
-          <p class="text-white/80 leading-relaxed">{{ data.sections[0].body }}</p>
+          <p class="text-white/80 leading-relaxed" v-html="data.sections[0].body"></p>
         </article>
 
         <!-- Highlights -->
@@ -124,5 +124,31 @@ const yearsExp = (() => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: rgba(147, 51, 234, 0.7);
+}
+
+/* Link styles for HTML content */
+:deep(a) {
+  color: #10b981; /* emerald-500 */
+  text-decoration: underline;
+  text-decoration-color: rgba(16, 185, 129, 0.4);
+  text-underline-offset: 2px;
+  transition: all 0.2s ease;
+}
+
+:deep(a:hover) {
+  color: #06d6a0; /* brighter emerald */
+  text-decoration-color: rgba(16, 185, 129, 0.8);
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+}
+
+:deep(a:visited) {
+  color: #8b5cf6; /* purple-500 */
+  text-decoration-color: rgba(139, 92, 246, 0.4);
+}
+
+:deep(a:visited:hover) {
+  color: #a78bfa; /* purple-400 */
+  text-decoration-color: rgba(139, 92, 246, 0.8);
+  text-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
 }
 </style>
