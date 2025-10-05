@@ -5,9 +5,6 @@
       <h2 class="text-2xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
         Quests & Experience
       </h2>
-      <span class="ml-auto text-xs px-2 py-1 rounded-full bg-white/10 border border-white/10 text-white/70">
-        Simplified view
-      </span>
     </div>
     <div class="flex-1 overflow-y-auto">
       <ul class="grid sm:grid-cols-2 gap-4">
@@ -18,7 +15,6 @@
                 <div class="font-semibold text-white/90">{{ item.title }}</div>
                 <div class="text-xs text-white/60 mt-0.5">{{ item.time }}</div>
               </div>
-              <span class="quest-badge inline-flex items-center gap-1"><AppIcon name="briefcase" :size="14" /> Role</span>
             </div>
             <p class="text-sm text-white/75 leading-relaxed mt-3">
               {{ item.desc }}

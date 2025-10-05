@@ -1656,10 +1656,10 @@ defineExpose({
 
 /* Cursor feedback */
 .with-spiral { cursor: default; }
-.with-spiral:has(.corner-curl.forward),
+/* .with-spiral:has(.corner-curl.forward),
 .with-spiral:has(.corner-curl.backward) {
   cursor: grab;
-}
+} */
 .with-spiral:active { cursor: grabbing; }
 </style>
 

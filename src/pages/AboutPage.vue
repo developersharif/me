@@ -63,7 +63,7 @@
           <ol class="relative pl-6">
             <div class="absolute left-2 top-1 bottom-1 w-px bg-white/10"></div>
             <li v-for="(t, idx) in data.timeline" :key="t.title" class="relative group py-2">
-              <span class="absolute -left-[2px] top-3 inline-block w-2 h-2 rounded-full"
+              <span class="absolute -left-[19px] top-3 inline-block w-2 h-2 rounded-full"
                     :class="[ idx === 0 ? 'bg-emerald-400' : idx === data.timeline.length-1 ? 'bg-purple-400' : 'bg-blue-400', 'ring-2 ring-white/20']" />
               <div class="flex flex-wrap items-baseline gap-x-3">
                 <span class="text-white/70 text-xs font-mono">{{ t.year }}</span>
