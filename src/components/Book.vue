@@ -201,19 +201,6 @@ const screenSize = ref({
   isDesktop: window.innerWidth >= 1024
 });
 
-// Enhanced swipe gesture state
-const touchState = ref({
-  startX: 0,
-  startY: 0,
-  currentX: 0,
-  currentY: 0,
-  deltaX: 0,
-  deltaY: 0,
-  isDragging: false,
-  startTime: 0,
-  velocity: 0
-});
-
 // Page change indicator state
 const pageChangeIndicator = ref({
   isVisible: false,
@@ -228,18 +215,7 @@ const mobilePageRef = ref<HTMLDivElement | null>(null);
 const desktopPageRef = ref<HTMLDivElement | null>(null);
 const bookContainerRef = ref<HTMLDivElement | null>(null);
 
-// Swipe configuration - More restrictive to prevent accidental navigation
-const swipeConfig = {
-  threshold: 80, // Increased minimum distance for swipe
-  velocityThreshold: 0.5, // Increased minimum velocity for swipe
-  maxVerticalDeviation: 80, // Reduced vertical movement allowed
-  debounceTime: 500 // Increased debounce time between swipes
-};
-
-let lastSwipeTime = 0;
-
-// Ignore swipe/flip when the user interacts with links, buttons, form fields, or elements marked as no-flip
-const ignoreTouchGesture = ref(false);
+// Helper to check if event targets an interactive element
 function isInteractiveElement(el: HTMLElement | null): boolean {
   if (!el) return false;
   return !!el.closest(
@@ -348,293 +324,11 @@ const handleScroll = (event: Event) => {
   // Removed auto-advance functionality - users must manually navigate
 };
 
-// Enhanced swipe gesture handling
-const handleTouchStart = (e: TouchEvent) => {
-  // If touching an interactive element, skip swipe handling entirely
-  ignoreTouchGesture.value = eventTargetsInteractive(e);
-  if (ignoreTouchGesture.value) return;
-  const touch = e.touches[0];
-  touchState.value = {
-    startX: touch.clientX,
-    startY: touch.clientY,
-    currentX: touch.clientX,
-    currentY: touch.clientY,
-    deltaX: 0,
-    deltaY: 0,
-    isDragging: false,
-    startTime: Date.now(),
-    velocity: 0
-  };
-};
-
-const handleTouchMove = (e: TouchEvent) => {
-  if (ignoreTouchGesture.value) return;
-  if (!touchState.value.startX) return;
-  
-  const touch = e.touches[0];
-  touchState.value.currentX = touch.clientX;
-  touchState.value.currentY = touch.clientY;
-  touchState.value.deltaX = touch.clientX - touchState.value.startX;
-  touchState.value.deltaY = touch.clientY - touchState.value.startY;
-  
-  // Mark as dragging if movement exceeds threshold
-  if (Math.abs(touchState.value.deltaX) > 15 || Math.abs(touchState.value.deltaY) > 15) {
-    touchState.value.isDragging = true;
-  }
-  
-  // Only prevent default scrolling if horizontal swipe is MUCH more dominant than vertical
-  // This allows natural scrolling while still enabling page swipes
-  const horizontalDominance = Math.abs(touchState.value.deltaX) / Math.max(Math.abs(touchState.value.deltaY), 1);
-  if (horizontalDominance > 2.5 && Math.abs(touchState.value.deltaX) > 30) {
-    e.preventDefault();
-  }
-};
-
-const handleTouchEnd = (e: TouchEvent) => {
-  if (ignoreTouchGesture.value) {
-    ignoreTouchGesture.value = false;
-    return;
-  }
-  if (!touchState.value.isDragging) return;
-  
-  const deltaTime = Date.now() - touchState.value.startTime;
-  const velocity = Math.abs(touchState.value.deltaX) / deltaTime;
-  
-  // Much more strict swipe validation
-  const horizontalDistance = Math.abs(touchState.value.deltaX);
-  const verticalDistance = Math.abs(touchState.value.deltaY);
-  const horizontalDominance = horizontalDistance / Math.max(verticalDistance, 1);
-  
-  const isValidSwipe = 
-    horizontalDistance > swipeConfig.threshold &&
-    verticalDistance < swipeConfig.maxVerticalDeviation &&
-    horizontalDominance > 2 && // Horizontal movement must be at least 2x more than vertical
-    (velocity > swipeConfig.velocityThreshold || horizontalDistance > swipeConfig.threshold * 1.5) &&
-    deltaTime < 800; // Swipe must be completed within 800ms
-  
-  // Debounce swipes
-  const now = Date.now();
-  if (now - lastSwipeTime < swipeConfig.debounceTime) return;
-  
-  if (isValidSwipe) {
-    lastSwipeTime = now;
-    
-    if (touchState.value.deltaX > 0) {
-      // Swipe right - previous page
-      prevPage();
-    } else {
-      // Swipe left - next page
-      nextPage();
-    }
-  }
-  
-  // Reset touch state
-  touchState.value = {
-    startX: 0,
-    startY: 0,
-    currentX: 0,
-    currentY: 0,
-    deltaX: 0,
-    deltaY: 0,
-    isDragging: false,
-    startTime: 0,
-    velocity: 0
-  };
-};
-
-// Pointer-based drag-to-flip
+// Pointer-based drag-to-flip - DISABLED for better mobile performance
 const handlePointerDown = (e: PointerEvent) => {
-  if (isFlipping.value) return;
-  // Don't start flip when interacting with actionable elements
-  if (eventTargetsInteractive(e)) return;
-  const targetEl = e.currentTarget as HTMLElement | null;
-  if (!targetEl) return;
-  if (e.pointerType === 'mouse' && e.button !== 0) return;
-
-  const rect = targetEl.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const width = rect.width;
-
-  let direction: 'forward' | 'backward' | null = null;
-  if (x > width * 0.65 && canFlipForward.value) direction = 'forward';
-  if (x < width * 0.35 && canFlipBackward.value) direction = direction ?? 'backward';
-  if (!direction) return;
-
-  e.preventDefault();
-  targetEl.setPointerCapture?.(e.pointerId);
-
-  isFlipping.value = true;
-  flipDirection.value = direction;
-  flipContent.value = props.pages[currentPageIndex.value] as Page;
-
-  drag.value = {
-    active: true,
-    direction,
-    startX: x,
-    currentX: x,
-    progress: 0,
-    width: Math.max(1, width - spiralRightPx.value),
-    lastTs: performance.now(),
-    velocity: 0,
-  };
-
-  const container = bookContainerRef.value;
-  container?.addEventListener('pointermove', handlePointerMove as any, { passive: false });
-  container?.addEventListener('pointerup', handlePointerUp as any, { passive: false });
-  container?.addEventListener('pointercancel', handlePointerUp as any, { passive: false });
-
-  nextTick(() => setFlipPageForDrag(0));
+  // Drag-to-flip disabled to prevent mobile scrolling issues and blinking
+  return;
 };
-
-const handlePointerMove = (e: PointerEvent) => {
-  if (!drag.value.active) return;
-  const pageEl = (screenSize.value.isDesktop ? desktopPageRef.value : mobilePageRef.value) as HTMLElement | null;
-  if (!pageEl) return;
-
-  const rect = pageEl.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const d = drag.value;
-  const now = performance.now();
-  const dt = Math.max(1, now - d.lastTs);
-  d.velocity = (x - d.currentX) / dt;
-  d.currentX = x;
-  d.lastTs = now;
-
-  if (d.direction === 'forward') {
-    d.progress = Math.min(1, Math.max(0, (d.startX - x) / d.width));
-  } else {
-    d.progress = Math.min(1, Math.max(0, (x - d.startX) / d.width));
-  }
-
-  e.preventDefault();
-  setFlipPageForDrag(d.progress);
-};
-
-const handlePointerUp = (e: PointerEvent) => {
-  if (!drag.value.active) return;
-  e.preventDefault();
-  const d = drag.value;
-  const progress = d.progress;
-  const fast = Math.abs(d.velocity) > 0.05; // ~0.05 px/ms (~50px in 1s)
-  const shouldComplete = progress > 0.5 || (fast && progress > 0.25);
-
-  const container = bookContainerRef.value;
-  container?.removeEventListener('pointermove', handlePointerMove as any);
-  container?.removeEventListener('pointerup', handlePointerUp as any);
-  container?.removeEventListener('pointercancel', handlePointerUp as any);
-
-  const remaining = shouldComplete ? (1 - progress) : progress;
-  const duration = Math.min(0.28, Math.max(0.12, remaining * 0.35));
-  animateDragCompletion(shouldComplete, duration);
-};
-
-function setFlipPageForDrag(progress: number) {
-  const container = desktopFlipRef.value || mobileFlipRef.value;
-  const flipPage = container?.querySelector('.flip-page') as HTMLElement | null;
-  const shadow = flipPage?.querySelector('.flip-shadow') as HTMLElement | null;
-  const gloss = flipPage?.querySelector('.flip-gloss') as HTMLElement | null;
-  const edge = flipPage?.querySelector('.page-edge') as HTMLElement | null;
-  if (!flipPage) return;
-
-  const G = (gsap as any);
-  const dir = drag.value.direction || 'forward';
-  const rotateY = dir === 'forward' ? -180 * progress : 180 * (1 - progress);
-  const curve = Math.sin(Math.PI * Math.min(1, Math.max(0, progress))) * 1.2;
-  const twist = (dir === 'forward' ? 0.5 : -0.5) * Math.sin(progress * Math.PI) * 0.6;
-
-  // Use simpler transforms on mobile devices to prevent blinking
-  if (screenSize.value.isMobile) {
-    G.set(flipPage, {
-      rotateY,
-      transformOrigin: '0px center',
-      transformStyle: 'flat',
-      backfaceVisibility: 'hidden',
-      zIndex: 30,
-    });
-  } else {
-    G.set(flipPage, {
-      rotateY,
-      rotateX: dir === 'forward' ? -curve : curve,
-      rotateZ: twist,
-      transformOrigin: '0px center',
-      transformStyle: 'preserve-3d',
-      perspective: 1200,
-      backfaceVisibility: 'hidden',
-      zIndex: 30,
-    });
-  }
-
-  if (shadow) (gsap as any).set(shadow, { opacity: 0.12 + 0.22 * Math.sin(progress * Math.PI) });
-  if (gloss) (gsap as any).set(gloss, { opacity: 0.08 + 0.1 * Math.sin(progress * Math.PI), x: (dir === 'forward' ? -80 + 160 * progress : 80 - 160 * progress) });
-  if (edge) (gsap as any).set(edge, { opacity: 0.15 + 0.25 * progress });
-}
-
-function animateDragCompletion(complete: boolean, duration: number) {
-  const container = desktopFlipRef.value || mobileFlipRef.value;
-  const flipPage = container?.querySelector('.flip-page') as HTMLElement | null;
-  const shadow = flipPage?.querySelector('.flip-shadow') as HTMLElement | null;
-  const gloss = flipPage?.querySelector('.flip-gloss') as HTMLElement | null;
-  const edge = flipPage?.querySelector('.page-edge') as HTMLElement | null;
-  if (!flipPage) {
-    drag.value.active = false;
-    isFlipping.value = false;
-    return;
-  }
-
-  const G = (gsap as any);
-  const dir = drag.value.direction || 'forward';
-  const currentProgress = drag.value.progress;
-  const startY = dir === 'forward' ? -180 * currentProgress : 180 * (1 - currentProgress);
-  const endY = complete ? (dir === 'forward' ? -180 : 0) : (dir === 'forward' ? 0 : 180);
-
-  // Use simplified animation on mobile
-  if (screenSize.value.isMobile) {
-    const tl = G.timeline({
-      defaults: { duration, ease: 'power2.out' },
-      onComplete: () => {
-        const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
-        if (complete) {
-          currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
-        }
-        drag.value.active = false;
-        isFlipping.value = false;
-        nextTick(() => {
-          mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-          desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-          measureAndApplySpiralMetrics();
-        });
-      }
-    });
-    
-    tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
-    if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
-    if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
-    if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
-  } else {
-    // Complex animation for desktop
-    const tl = G.timeline({
-      defaults: { duration, ease: 'power2.out' },
-      onComplete: () => {
-        const targetIndex = dir === 'forward' ? currentPageIndex.value + 1 : currentPageIndex.value - 1;
-        if (complete) {
-          currentPageIndex.value = Math.max(0, Math.min(props.pages.length - 1, targetIndex));
-        }
-        drag.value.active = false;
-        isFlipping.value = false;
-        nextTick(() => {
-          mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-          desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-          measureAndApplySpiralMetrics();
-        });
-      }
-    });
-
-    tl.fromTo(flipPage, { rotateY: startY }, { rotateY: endY });
-    if (shadow) tl.to(shadow, { opacity: 0, duration: duration * 0.8 }, 0);
-    if (gloss) tl.to(gloss, { opacity: 0, duration: duration * 0.8 }, 0);
-    if (edge) tl.to(edge, { opacity: 0, duration: duration * 0.8 }, 0);
-  }
-}
 
 const nextPage = async () => {
   if (currentPageIndex.value >= props.pages.length - 1 || isFlipping.value) return;
@@ -709,7 +403,7 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
         });
       }
 
-  const tl = G.timeline({
+      const tl = G.timeline({
         onComplete: () => {
           currentPageIndex.value = targetIndex;
           isFlipping.value = false;
@@ -722,97 +416,22 @@ const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number
           resolve();
         }
       });
-  // Make the quick jump snappier but still smooth
-  tl.timeScale(1.25);
 
-      // Use simpler animation on mobile to prevent blinking
-      if (screenSize.value.isMobile) {
-        // Simple 2D flip for mobile
-        if (direction === 'forward') {
-          tl.to(flipPage, {
-            rotateY: -180,
-            duration: 0.25,
-            ease: 'power2.inOut'
-          });
-        } else {
-          tl.fromTo(flipPage, {
-            rotateY: 180
-          }, {
-            rotateY: 0,
-            duration: 0.25,
-            ease: 'power2.inOut'
-          });
-        }
+      // Simple, fast animation for quick jumps
+      if (direction === 'forward') {
+        tl.to(flipPage, {
+          rotateY: -180,
+          duration: 0.25,
+          ease: 'power2.inOut'
+        });
       } else {
-        // Complex 3D animation for desktop
-        // Quick flip - STRICTLY anchored to coil binding, NO horizontal movement
-        if (direction === 'forward') {
-          tl.to(flipPage, {
-            rotateY: -45, // Quick lift
-            rotateX: -1.2,
-            rotateZ: 0.4,
-            // NO x translation - stay at spiral binding
-            duration: 0.06,
-            ease: 'power3.out',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
-          })
-          .to(flipPage, {
-            rotateY: -135, // Fast sweep
-            rotateX: -0.8,
-            rotateZ: 0.2,
-            // NO horizontal drift
-            duration: 0.08,
-            ease: 'sine.inOut',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            filter: 'brightness(1.01) contrast(1.015)'
-          })
-          .to(flipPage, {
-            rotateY: -180, // Quick settle
-            rotateX: 0,
-            rotateZ: 0,
-            // Perfect binding anchor
-            duration: 0.06,
-            ease: 'power3.out',
-            boxShadow: 'none',
-            filter: 'brightness(1) contrast(1)'
-          });
-        } else {
-          // Backward quick flip: PURE reverse motion, NO drift
-          tl.fromTo(flipPage, {
-            rotateY: 180, // Start from behind
-            rotateX: 0,
-            rotateZ: 0
-            // NO positioning - binding-anchored only
-          }, {
-            rotateY: 135, // Quick reverse sweep
-            rotateX: 0.8,
-            rotateZ: -0.2,
-            // Stay at spiral binding
-            duration: 0.08,
-            ease: 'sine.inOut',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
-            filter: 'brightness(1.01) contrast(1.015)'
-          })
-          .to(flipPage, {
-            rotateY: 45, // Quick lift (reverse)
-            rotateX: 1.2,
-            rotateZ: -0.4,
-            // NO horizontal movement
-            duration: 0.06,
-            ease: 'power3.out',
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)'
-          })
-          .to(flipPage, {
-            rotateY: 0, // Final forward position
-            rotateX: 0,
-            rotateZ: 0,
-            // Anchored to binding
-            duration: 0.06,
-            ease: 'power3.out',
-            boxShadow: 'none',
-            filter: 'brightness(1) contrast(1)'
-          });
-        }
+        tl.fromTo(flipPage, {
+          rotateY: 180
+        }, {
+          rotateY: 0,
+          duration: 0.25,
+          ease: 'power2.inOut'
+        });
       }
     });
   });
@@ -854,34 +473,38 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
       const gloss = flipPage.querySelector('.flip-gloss') as HTMLElement | null;
       const edge = flipPage.querySelector('.page-edge') as HTMLElement | null;
 
-  const G = (gsap as any);
+      const G = (gsap as any);
       
-  // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
-  const spiralBindingOrigin = `0px center`;
+      // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
+      const spiralBindingOrigin = `0px center`;
       
-      // Prepare the page for realistic flip - no white flash
+      // Use simplified animation on mobile to prevent blinking
+      const isMobileDevice = screenSize.value.isMobile;
+      
+      // Prepare the page for flip
       G.set(flipPage, { 
         rotateY: 0,
         rotateX: 0,
         rotateZ: 0,
         transformOrigin: spiralBindingOrigin,
-        transformStyle: 'preserve-3d',
-        perspective: 1200,
+        transformStyle: isMobileDevice ? 'flat' : 'preserve-3d',
+        perspective: isMobileDevice ? 'none' : 1200,
         backfaceVisibility: 'hidden',
         boxShadow: 'none',
-        filter: 'brightness(1) contrast(1)',
+        filter: 'brightness(1)',
         zIndex: 30,
-        opacity: 1, // Ensure visibility
-        visibility: 'visible'
+        opacity: 1,
+        visibility: 'visible',
+        willChange: 'transform'
       });
       
       // Reset effect elements
-      if (shadow) G.set(shadow, { opacity: 0, scaleX: 1, scaleY: 1 });
-      if (gloss) G.set(gloss, { opacity: 0, x: -80, scaleX: 0.5, skewX: -15 });
+      if (shadow) G.set(shadow, { opacity: 0 });
+      if (gloss) G.set(gloss, { opacity: 0 });
       if (edge) G.set(edge, { opacity: 0 });
 
-      // Create realistic hand-flipped notebook timeline
-  const tl = G.timeline({
+      // Create simplified timeline
+      const tl = G.timeline({
         onComplete: () => {
           // Update page index smoothly
           currentPageIndex.value = targetIndex;
@@ -900,329 +523,42 @@ const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
           resolve();
         }
       });
-  // Increase the overall speed a bit while keeping curves smooth
-  tl.timeScale(1.35);
-
-      // Realistic hand-flipped page physics - STRICTLY anchored to coil binding
-      if (direction === 'forward') {
-        // Forward flip: page lifts and rotates ONLY around spiral binding - NO horizontal drift
-        tl.to(flipPage, {
-          rotateY: -8, // Gentle initial lift
-          rotateX: -0.8, // Slight upward curve
-          rotateZ: 0.3, // Tiny twist
-          // CRITICAL: NO x, y, z translations - stay anchored to spiral binding
-          duration: 0.12,
-          ease: 'power3.out',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
-        })
-        .to(flipPage, {
-          rotateY: -45, // Quarter turn
-          rotateX: -1.5, // More pronounced curve
-          rotateZ: 0.5, // Slight twist continues
-          // NO position changes - pure rotation around binding
-          duration: 0.18,
-          ease: 'sine.inOut',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-          filter: 'brightness(1.01) contrast(1.02)'
-        })
-        .to(flipPage, {
-          rotateY: -78, // Near completion
-          rotateX: -0.8, // Page straightening
-          rotateZ: 0.2, // Twist reducing
-          // Stay perfectly anchored
-          duration: 0.15,
-          ease: 'power3.out',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
-          filter: 'brightness(1.015) contrast(1.01)'
-        })
-        .to(flipPage, {
-          rotateY: -90, // Perfect vertical
-          rotateX: -0.3,
-          rotateZ: 0,
-          // NO drift from binding axis
-          duration: 0.08,
-          ease: 'sine.inOut',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        })
-        .to(flipPage, {
-          rotateY: -102, // Slight overshoot
-          rotateX: 0.3, // Page curves other way
-          rotateZ: -0.2, // Slight counter-twist
-          // Maintain binding constraint
-          duration: 0.12,
-          ease: 'power3.out',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
-        })
-        .to(flipPage, {
-          rotateY: -180, // Final flat position
-          rotateX: 0,
-          rotateZ: 0,
-          // Perfect anchor at spiral binding
-          duration: 0.15,
-          ease: 'power3.out',
-          boxShadow: 'none',
-          filter: 'brightness(1) contrast(1)'
-        });
+      
+      // Simple, optimized flip animation
+      if (isMobileDevice) {
+        // Ultra-simple 2D flip for mobile to prevent blinking
+        if (direction === 'forward') {
+          tl.to(flipPage, {
+            rotateY: -180,
+            duration: 0.3,
+            ease: 'power2.inOut'
+          });
+        } else {
+          tl.fromTo(flipPage, {
+            rotateY: 180
+          }, {
+            rotateY: 0,
+            duration: 0.3,
+            ease: 'power2.inOut'
+          });
+        }
       } else {
-        // Backward flip: PROPER reverse motion - starts from behind, NO horizontal drift
-        tl.fromTo(flipPage, {
-          // Start from behind position
-          rotateY: 180,
-          rotateX: 0,
-          rotateZ: 0
-          // NO x,y,z positioning - pure binding-anchored rotation
-        }, {
-          rotateY: 172, // Begin reverse motion
-          rotateX: -0.3,
-          rotateZ: 0.2,
-          // Stay anchored to binding
-          duration: 0.15,
-          ease: 'power3.out',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.18)'
-        })
-        .to(flipPage, {
-          rotateY: 102, // Reverse overshoot
-          rotateX: -0.3,
-          rotateZ: -0.2,
-          // NO horizontal movement
-          duration: 0.12,
-          ease: 'power3.out',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        })
-        .to(flipPage, {
-          rotateY: 90, // Vertical pause
-          rotateX: 0.3,
-          rotateZ: 0,
-          // Binding-anchored only
-          duration: 0.08,
-          ease: 'sine.inOut',
-          boxShadow: '0 8px 25px rgba(0,0,0,0.18)',
-          filter: 'brightness(1.015) contrast(1.01)'
-        })
-        .to(flipPage, {
-          rotateY: 78, // Near completion
-          rotateX: 0.8,
-          rotateZ: -0.2,
-          // NO drift from spiral binding
-          duration: 0.15,
-          ease: 'power3.out',
-          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-          filter: 'brightness(1.01) contrast(1.02)'
-        })
-        .to(flipPage, {
-          rotateY: 45, // Quarter turn
-          rotateX: 1.5,
-          rotateZ: -0.5,
-          // Stay anchored to binding
-          duration: 0.18,
-          ease: 'sine.inOut',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.08)'
-        })
-        .to(flipPage, {
-          rotateY: 8, // Final gentle position
-          rotateX: 0.8,
-          rotateZ: -0.3,
-          // Perfect binding anchor
-          duration: 0.12,
-          ease: 'power3.out',
-          boxShadow: 'none',
-          filter: 'brightness(1) contrast(1)'
-        });
-      }
-
-      // Realistic shadow that follows hand movement - different for forward/backward
-      if (shadow) {
+        // Simple 3D flip for desktop
         if (direction === 'forward') {
-          // Forward shadow: starts light, peaks at middle, fades
-          tl.fromTo(shadow, 
-            { opacity: 0, scaleX: 1, scaleY: 1 },
-            { 
-              opacity: 0.08, 
-              scaleX: 1.02, 
-              scaleY: 0.98,
-              duration: 0.12,
-              ease: 'power2.out'
-            }, 0
-          )
-          .to(shadow, {
-            opacity: 0.18,
-            scaleX: 1.05,
-            scaleY: 0.95,
-            duration: 0.18,
-            ease: 'power1.inOut'
-          }, 0.12)
-          .to(shadow, {
-            opacity: 0.25,
-            scaleX: 1.08,
-            scaleY: 0.92,
-            duration: 0.15,
-            ease: 'power2.out'
-          }, 0.3)
-          .to(shadow, {
-            opacity: 0.3,
-            scaleX: 1.1,
-            scaleY: 0.9,
-            duration: 0.08,
-            ease: 'power1.inOut'
-          }, 0.45)
-          .to(shadow, {
-            opacity: 0.25,
-            scaleX: 1.08,
-            scaleY: 0.92,
-            duration: 0.12,
-            ease: 'power2.out'
-          }, 0.53)
-          .to(shadow, {
-            opacity: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 0.15,
-            ease: 'elastic.out(1, 0.8)'
-          }, 0.65);
+          tl.to(flipPage, {
+            rotateY: -180,
+            duration: 0.4,
+            ease: 'power2.inOut'
+          });
         } else {
-          // Backward shadow: reverse timeline - starts strong, fades to light
-          tl.fromTo(shadow,
-            { opacity: 0.3, scaleX: 1.1, scaleY: 0.9 },
-            {
-              opacity: 0.25,
-              scaleX: 1.08,
-              scaleY: 0.92,
-              duration: 0.15,
-              ease: 'elastic.out(1, 0.8)'
-            }, 0
-          )
-          .to(shadow, {
-            opacity: 0.3,
-            scaleX: 1.1,
-            scaleY: 0.9,
-            duration: 0.12,
-            ease: 'power2.out'
-          }, 0.15)
-          .to(shadow, {
-            opacity: 0.25,
-            scaleX: 1.08,
-            scaleY: 0.92,
-            duration: 0.08,
-            ease: 'power1.inOut'
-          }, 0.27)
-          .to(shadow, {
-            opacity: 0.18,
-            scaleX: 1.05,
-            scaleY: 0.95,
-            duration: 0.15,
-            ease: 'power2.out'
-          }, 0.35)
-          .to(shadow, {
-            opacity: 0.08,
-            scaleX: 1.02,
-            scaleY: 0.98,
-            duration: 0.18,
-            ease: 'power1.inOut'
-          }, 0.5)
-          .to(shadow, {
-            opacity: 0,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 0.12,
-            ease: 'power2.out'
-          }, 0.68);
-        }
-      }
-
-      // Natural paper gloss - different direction for forward/backward
-      if (gloss) {
-        if (direction === 'forward') {
-          // Forward gloss: sweeps from left to right following the page flip
-          tl.fromTo(gloss, {
-            opacity: 0,
-            x: -80,
-            scaleX: 0.5,
-            skewX: -15
+          tl.fromTo(flipPage, {
+            rotateY: 180
           }, {
-            opacity: 0.12,
-            x: -40,
-            scaleX: 0.7,
-            skewX: -10,
-            duration: 0.3,
-            ease: 'power2.out'
-          }, 0.1)
-          .to(gloss, {
-            opacity: 0.18,
-            x: 0,
-            scaleX: 1,
-            skewX: 0,
-            duration: 0.25,
-            ease: 'power1.inOut'
-          }, 0.4)
-          .to(gloss, {
-            opacity: 0.08,
-            x: 40,
-            scaleX: 0.7,
-            skewX: 10,
-            duration: 0.25,
-            ease: 'power2.in'
-          }, 0.65);
-        } else {
-          // Backward gloss: sweeps from right to left (reverse motion)
-          tl.fromTo(gloss, {
-            opacity: 0.08,
-            x: 40,
-            scaleX: 0.7,
-            skewX: 10
-          }, {
-            opacity: 0.18,
-            x: 0,
-            scaleX: 1,
-            skewX: 0,
-            duration: 0.25,
-            ease: 'power2.out'
-          }, 0.1)
-          .to(gloss, {
-            opacity: 0.12,
-            x: -40,
-            scaleX: 0.7,
-            skewX: -10,
-            duration: 0.25,
-            ease: 'power1.inOut'
-          }, 0.35)
-          .to(gloss, {
-            opacity: 0,
-            x: -80,
-            scaleX: 0.5,
-            skewX: -15,
-            duration: 0.3,
-            ease: 'power2.in'
-          }, 0.6);
+            rotateY: 0,
+            duration: 0.4,
+            ease: 'power2.inOut'
+          });
         }
-      }
-
-      // Page edge highlight - simulates page thickness
-      if (edge) {
-        tl.to(edge, {
-          opacity: 0.15,
-          duration: 0.12,
-          ease: 'power2.out'
-        }, 0.3)
-        .to(edge, {
-          opacity: 0.3,
-          duration: 0.15,
-          ease: 'power1.inOut'
-        }, 0.45)
-        .to(edge, {
-          opacity: 0.4,
-          duration: 0.08,
-          ease: 'power1.inOut'
-        }, 0.53)
-        .to(edge, {
-          opacity: 0.2,
-          duration: 0.12,
-          ease: 'power2.out'
-        }, 0.61)
-        .to(edge, {
-          opacity: 0,
-          duration: 0.15,
-          ease: 'power2.in'
-        }, 0.73);
       }
     });
   });
@@ -1310,14 +646,12 @@ onMounted(() => {
   if (container) {
     // Make sure container can capture keyboard events
     container.addEventListener('keydown', handleKeydown);
-
-    // Scope touch and wheel events to the container only
-    container.addEventListener('touchstart', handleTouchStart as any, { passive: false });
-    container.addEventListener('touchmove', handleTouchMove as any, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd as any, { passive: true });
-  container.addEventListener('wheel', handleWheel as any, { passive: false });
-  // Make drag-to-flip work well with touch + mouse
-  container.style.touchAction = 'pan-y';
+    
+    // Allow Ctrl+Wheel navigation on desktop only
+    container.addEventListener('wheel', handleWheel as any, { passive: false });
+    
+    // Enable smooth vertical scrolling
+    container.style.touchAction = 'pan-y';
 
     // Optionally focus the container so Arrow keys work immediately
     container.focus();
@@ -1336,13 +670,7 @@ onUnmounted(() => {
   const container = bookContainerRef.value;
   if (container) {
     container.removeEventListener('keydown', handleKeydown);
-    container.removeEventListener('touchstart', handleTouchStart as any);
-    container.removeEventListener('touchmove', handleTouchMove as any);
-    container.removeEventListener('touchend', handleTouchEnd as any);
     container.removeEventListener('wheel', handleWheel as any);
-  container.removeEventListener('pointermove', handlePointerMove as any);
-  container.removeEventListener('pointerup', handlePointerUp as any);
-  container.removeEventListener('pointercancel', handlePointerUp as any);
   }
 });
 
@@ -1420,25 +748,27 @@ defineExpose({
   transform-style: preserve-3d;
 }
 
-/* Mobile layout */
+/* Mobile layout - optimized for performance */
 .mobile-page-container {
   position: relative;
   width: 100%;
   height: 100%;
   border-radius: var(--radius-container);
   overflow: hidden;
-  background: var(--color-glass-bg);
-  /* Disable expensive effects on mobile to prevent blinking */
-  backdrop-filter: none;
+  background-color: rgba(15, 23, 42, 0.95);
   border: 1px solid var(--color-glass-border);
   flex: 1;
-  /* Simplified transforms for mobile performance */
+  /* Mobile optimizations */
   transform-style: flat;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: auto;
 }
 
 /* Enable backdrop blur only on larger screens */
 @media (min-width: 768px) {
   .mobile-page-container {
+    background: var(--color-glass-bg);
     backdrop-filter: blur(var(--blur-glass));
     transform-style: preserve-3d;
   }
@@ -1453,9 +783,11 @@ defineExpose({
   overflow-x: hidden;
   overscroll-behavior: contain;
   position: relative;
-  /* Simplified transforms for mobile performance */
+  /* Mobile optimizations to prevent blinking */
   transform-style: flat;
   will-change: auto;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   
   /* Custom scrollbar for mobile */
   scrollbar-width: thin;
@@ -1470,7 +802,6 @@ defineExpose({
 @media (min-width: 768px) {
   .mobile-page {
     transform-style: preserve-3d;
-    will-change: transform;
   }
 }
 
@@ -1884,11 +1215,12 @@ defineExpose({
     height: 100%;
     z-index: 1000;
     pointer-events: none;
-    /* Simplified transforms for mobile performance */
+    /* Optimized for mobile performance */
     transform-style: flat;
-    /* Critical: Clip to keep animation within coil binding area */
-    clip-path: inset(0); /* Already positioned to start at the spiral's right edge */
-    overflow: hidden; /* Ensure nothing escapes the clipped area */
+    overflow: hidden;
+    /* GPU acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
   }
   
   /* Enable 3D transforms only on larger screens */
@@ -1898,42 +1230,32 @@ defineExpose({
     }
   }
   
-  /* Flip page with proper 3D transforms and realistic styling */
+  /* Flip page - optimized for performance */
   .flip-page {
     position: relative;
     width: 100%;
     height: 100%;
-    /* Match the exact book page styling to prevent white blink */
-    background: var(--color-glass-bg);
-    /* Disable expensive backdrop blur on mobile */
-    backdrop-filter: none;
+    /* Solid background to prevent blinking */
+    background-color: rgba(15, 23, 42, 0.98);
     border: 1px solid var(--color-glass-border);
     border-radius: var(--radius-container);
-    /* Simplified transforms for mobile performance */
+    /* Optimized transforms for mobile */
     transform-style: flat;
     backface-visibility: hidden;
-    /* Set transform origin at spiral binding */
-  /* Hinge at the overlay's left edge (aligned to spiral right) */
-  transform-origin: 0px center;
-    /* Ensure page respects book container bounds */
-    clip-path: inset(0 0 0 0);
-    /* Realistic paper texture */
-    background-image: 
-      linear-gradient(90deg, rgba(255,255,255,0.01) 0%, transparent 2%),
-      linear-gradient(0deg, rgba(255,255,255,0.005) 0%, transparent 2%);
-    background-size: 12px 12px, 8px 8px;
-    /* Smooth transitions to prevent blinks */
-    transition: none;
-    will-change: auto;
-    /* Solid background for mobile to prevent transparency flicker */
-    background-color: rgba(15, 23, 42, 0.95);
+    -webkit-backface-visibility: hidden;
+    transform-origin: 0px center;
+    /* GPU acceleration */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Prevent visual glitches */
+    will-change: transform;
+    isolation: isolate;
   }
   
-  /* Enable 3D transforms and backdrop blur only on larger screens */
+  /* Enable 3D transforms and effects only on larger screens */
   @media (min-width: 768px) {
     .flip-page {
       transform-style: preserve-3d;
-      will-change: transform, box-shadow;
       background: var(--color-glass-bg);
       backdrop-filter: blur(var(--blur-glass));
     }
