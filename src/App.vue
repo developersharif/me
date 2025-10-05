@@ -9,7 +9,13 @@
     >
       <div class="font-mono text-sm text-accent-300 hidden sm:block">{{ data.site.title }}</div>
       <nav class="flex gap-3 sm:gap-4 text-xs sm:text-sm overflow-x-auto whitespace-nowrap text-white/90">
-  <button v-for="(link, i) in navLinks" :key="link.to" class="hover:text-accent-300 transition-colors" @click="goTo(i, 'fast')">
+        <button 
+          v-for="(link, i) in navLinks" 
+          :key="link.to" 
+          class="nav-link relative hover:text-accent-300 transition-colors" 
+          :class="{ 'active': currentPageIndex === i }"
+          @click="goTo(i, 'fast')"
+        >
           {{ link.label }}
         </button>
       </nav>
@@ -72,6 +78,7 @@ const pages = data.pages.map(p => ({
 
 const navLinks = computed(() => pages.map(p => ({ to: p.id, label: p.label })));
 const bookRef = ref<InstanceType<typeof Book> | null>(null);
+const currentPageIndex = computed(() => bookRef.value?.currentPageIndex ?? 0);
 
 function goTo(index: number, mode: 'step' | 'fast' | 'instant' = 'fast') {
   bookRef.value?.goTo(index, { mode });
@@ -83,4 +90,42 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.nav-link {
+  position: relative;
+  padding-bottom: 6px;
+  transition: all 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(135deg, #10b981, #06d6a0);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.nav-link.active {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.nav-link.active::after {
+  transform: scaleX(1);
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.9);
+  }
+}
 </style>
