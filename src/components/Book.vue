@@ -22,6 +22,9 @@
             @scroll="handleScroll"
             ref="mobilePageRef"
             @pointerdown="handlePointerDown"
+            @pointermove="handlePointerMove"
+            @pointerup="handlePointerUp"
+            @pointercancel="handlePointerUp"
           >
             <component :is="currentMobilePage?.component" v-bind="currentMobilePage?.props" v-if="currentMobilePage" />
             
@@ -69,6 +72,9 @@
               @scroll="handleScroll"
               ref="desktopPageRef"
               @pointerdown="handlePointerDown"
+              @pointermove="handlePointerMove"
+              @pointerup="handlePointerUp"
+              @pointercancel="handlePointerUp"
             >
               <component :is="currentMobilePage?.component" v-bind="currentMobilePage?.props" v-if="currentMobilePage" />
               
@@ -153,11 +159,11 @@
 <script setup lang="ts">
 // @ts-nocheck
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
-// Default/fallback spiral binding width (will be overridden by measurement)
-const SPIRAL_BINDING_WIDTH = 28;
-// Measured right-edge (px) of the `.notebook-spiral` relative to its page container
-const spiralRightPx = ref<number>(SPIRAL_BINDING_WIDTH);
 import gsap from 'gsap';
+
+// Default/fallback spiral binding width
+const SPIRAL_BINDING_WIDTH = 28;
+const spiralRightPx = ref<number>(SPIRAL_BINDING_WIDTH);
 
 interface Page {
   id: string;
@@ -177,21 +183,27 @@ const currentPageIndex = ref(0);
 const isFlipping = ref(false);
 const flipDirection = ref<'forward' | 'backward'>('forward');
 const flipContent = ref<Page | null>(null);
-const mobileFlipRef = ref<HTMLDivElement | null>(null);
-const desktopFlipRef = ref<HTMLDivElement | null>(null);
-// Drag-to-flip state
+
+// Refs
+const bookContainerRef = ref<HTMLElement | null>(null);
+const mobilePageRef = ref<HTMLElement | null>(null);
+const desktopPageRef = ref<HTMLElement | null>(null);
+const mobileFlipRef = ref<HTMLElement | null>(null);
+const desktopFlipRef = ref<HTMLElement | null>(null);
+
+// Drag state
 const drag = ref({
   active: false,
   direction: null as null | 'forward' | 'backward',
   startX: 0,
   currentX: 0,
   progress: 0,
-  width: 1,
+  width: 0,
   lastTs: 0,
-  velocity: 0,
+  velocity: 0
 });
 
-// Screen adaptation state
+// Screen adaptation
 const screenSize = ref({
   width: window.innerWidth,
   height: window.innerHeight,
@@ -201,50 +213,41 @@ const screenSize = ref({
   isDesktop: window.innerWidth >= 1024
 });
 
-// Page change indicator state
+// Indicators
 const pageChangeIndicator = ref({
   isVisible: false,
   direction: '',
   progress: 0,
   title: ''
 });
-
-// Scroll-to-next indicator state
 const showScrollNextIndicator = ref(false);
-const mobilePageRef = ref<HTMLDivElement | null>(null);
-const desktopPageRef = ref<HTMLDivElement | null>(null);
-const bookContainerRef = ref<HTMLDivElement | null>(null);
 
-// Helper to check if event targets an interactive element
+const currentMobilePage = computed(() => props.pages[currentPageIndex.value]);
+const canFlipForward = computed(() => currentPageIndex.value < props.pages.length - 1 && !isFlipping.value);
+const canFlipBackward = computed(() => currentPageIndex.value > 0 && !isFlipping.value);
+
+// --- Helper Functions ---
+
 function isInteractiveElement(el: HTMLElement | null): boolean {
   if (!el) return false;
   return !!el.closest(
     'a, button, input, textarea, select, label, summary, details, [role="button"], [role="link"], [contenteditable="true"], .no-flip, [data-no-flip], [data-interactive]'
   );
 }
+
 function eventTargetsInteractive(e: Event): boolean {
-  // If the user is selecting text, don't hijack
   try {
     const sel = window.getSelection?.();
     if (sel && sel.toString().length > 0) return true;
   } catch {}
-
+  
   const path = (e.composedPath?.() || []) as EventTarget[];
   for (const t of path) {
     if (t instanceof HTMLElement && isInteractiveElement(t)) return true;
   }
-  const tgt = e.target as HTMLElement | null;
-  return isInteractiveElement(tgt);
+  return isInteractiveElement(e.target as HTMLElement);
 }
 
-// Show current page for both mobile and desktop (single page layout)
-const currentMobilePage = computed(() => {
-  return props.pages[currentPageIndex.value];
-});
-const canFlipForward = computed(() => currentPageIndex.value < props.pages.length - 1 && !isFlipping.value);
-const canFlipBackward = computed(() => currentPageIndex.value > 0 && !isFlipping.value);
-
-// Screen size adaptation
 const updateScreenSize = () => {
   screenSize.value = {
     width: window.innerWidth,
@@ -254,30 +257,23 @@ const updateScreenSize = () => {
     isTablet: window.innerWidth >= 768 && window.innerWidth < 1024,
     isDesktop: window.innerWidth >= 1024
   };
-  // After each resize/orientation change, recompute the spiral metrics
   nextTick(() => measureAndApplySpiralMetrics());
 };
 
-// Measure the `.notebook-spiral` and store CSS variables on each page container
 function measureAndApplySpiralMetrics() {
-  const container = bookContainerRef.value as HTMLElement | null;
+  const container = bookContainerRef.value;
   if (!container) return;
-
-  // For each visible page container, find its local spiral and compute its right edge
-  const pageContainers = container.querySelectorAll<HTMLElement>(
-    '.mobile-page-container, .desktop-pages-container'
-  );
-
+  const pageContainers = container.querySelectorAll<HTMLElement>('.mobile-page-container, .desktop-pages-container');
+  
   pageContainers.forEach((pageEl) => {
     const spiral = pageEl.querySelector('.notebook-spiral') as HTMLElement | null;
     if (!spiral) return;
     const pageRect = pageEl.getBoundingClientRect();
     const spiralRect = spiral.getBoundingClientRect();
     const rightEdge = Math.max(0, Math.round(spiralRect.right - pageRect.left));
-    // Update CSS vars on the specific page container
+    
     pageEl.style.setProperty('--coil-right', `${rightEdge}px`);
     pageEl.style.setProperty('--spiral-width', `${Math.max(1, Math.round(spiralRect.width))}px`);
-    // Update reactive ref for JS animation hinge (we hinge at overlay's left = 0px)
     spiralRightPx.value = rightEdge;
   });
 }
@@ -304,262 +300,288 @@ const showPageChangeIndicator = (direction: 'forward' | 'backward', targetIndex:
   }, 45);
 };
 
-// Scroll handling for scroll indicator (removed auto-pagination)
-const handleScroll = (event: Event) => {
-  const target = event.target as HTMLElement;
-  const scrollTop = target.scrollTop;
-  const scrollHeight = target.scrollHeight;
-  const clientHeight = target.clientHeight;
+// --- Drag & Physics Logic ---
+
+const handlePointerDown = (e: PointerEvent) => {
+  if (isFlipping.value || eventTargetsInteractive(e)) return;
   
-  // Calculate scroll percentage
-  const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+  // Don't drag if analyzing text/scroll is priority? 
+  // We'll allow drag but maybe be stricter about horizontal vs vertical
   
-  // Show next page indicator when user is near the bottom (95% scrolled)
-  // and there's a next page available, but don't auto-advance
-  const isNearBottom = scrollPercentage >= 0.95;
-  const hasNextPage = currentPageIndex.value < props.pages.length - 1;
+  const width = bookContainerRef.value?.clientWidth || window.innerWidth;
+  const x = e.clientX;
   
-  showScrollNextIndicator.value = isNearBottom && hasNextPage && !isFlipping.value;
+  // Edge zones (20% logic)
+  const isRightEdge = x > width * 0.8;
+  const isLeftEdge = x < width * 0.2;
   
-  // Removed auto-advance functionality - users must manually navigate
+  if (isRightEdge && currentPageIndex.value < props.pages.length - 1) {
+    startDrag('forward', x, e, width);
+  } else if (isLeftEdge && currentPageIndex.value > 0) {
+    startDrag('backward', x, e, width);
+  }
 };
 
-// Pointer-based drag-to-flip - DISABLED for better mobile performance
-const handlePointerDown = (e: PointerEvent) => {
-  // Drag-to-flip disabled to prevent mobile scrolling issues and blinking
-  return;
+const handlePointerMove = (e: PointerEvent) => {
+  if (!drag.value.active) return;
+  
+  const now = Date.now();
+  const dt = now - drag.value.lastTs;
+  const dx = e.clientX - drag.value.currentX;
+  
+  drag.value.currentX = e.clientX;
+  drag.value.velocity = dt > 0 ? dx / dt : 0;
+  drag.value.lastTs = now;
+  
+  // Calculate progress (-1 to 0 for forward wrap, 0 to 1 for backward wrap? simplified 0-1)
+  const dist = drag.value.currentX - drag.value.startX;
+  // Forward: dragging left (negative dist). max drag ~ width.
+  // Backward: dragging right (positive dist). max drag ~ width.
+  
+  let progress = 0;
+  const maxDrag = drag.value.width * 0.9;
+  
+  if (drag.value.direction === 'forward') {
+    // Expected movement: startX -> left
+    progress = Math.max(0, Math.min(1, -dist / maxDrag));
+  } else {
+    // Expected movement: startX -> right
+    progress = Math.max(0, Math.min(1, dist / maxDrag));
+  }
+  
+  drag.value.progress = progress;
+  updateFlipVisuals(progress, drag.value.direction as 'forward'|'backward');
 };
+
+const handlePointerUp = (e: PointerEvent) => {
+  if (!drag.value.active) return;
+  
+  drag.value.active = false;
+  (e.target as Element).releasePointerCapture(e.pointerId);
+  
+  // Determine finish or revert
+  // Thresholds: > 30% progress OR significant velocity in correct direction
+  const p = drag.value.progress;
+  const v = drag.value.velocity;
+  const dir = drag.value.direction;
+  
+  let shouldFinish = false;
+  
+  if (dir === 'forward') {
+    // Finish if moved far enough left OR flicked left
+    if (p > 0.3 || v < -0.5) shouldFinish = true;
+  } else {
+    // Finish if moved far enough right OR flicked right
+    if (p > 0.3 || v > 0.5) shouldFinish = true;
+  }
+  
+  completeDrag(shouldFinish);
+};
+
+// Initialize Drag State
+function startDrag(direction: 'forward' | 'backward', startX: number, e: PointerEvent, width: number) {
+  drag.value.active = true;
+  drag.value.direction = direction;
+  drag.value.startX = startX;
+  drag.value.currentX = startX;
+  drag.value.lastTs = Date.now();
+  drag.value.velocity = 0;
+  drag.value.width = width;
+  drag.value.progress = 0;
+  
+  (e.target as Element).setPointerCapture(e.pointerId);
+  
+  // Visually start flipping
+  isFlipping.value = true;
+  flipDirection.value = direction;
+  
+  // CONTENT LOGIC:
+  // Forward: showing Current Page flipping away.
+  // Backward: showing Previous Page flipping back IN.
+  
+  if (direction === 'forward') {
+    flipContent.value = props.pages[currentPageIndex.value];
+  } else {
+    flipContent.value = props.pages[currentPageIndex.value - 1];
+  }
+  
+  nextTick(() => {
+    // Initialize initial rotation
+    updateFlipVisuals(0, direction);
+  });
+}
+
+function updateFlipVisuals(progress: number, direction: 'forward' | 'backward') {
+  const flipPage = getFlipElement();
+  if (!flipPage) return;
+  
+  const G = (gsap as any);
+  const spiralBindingOrigin = '0px center';
+  
+  // Calculate Angle
+  // Forward: 0 -> -180
+  // Backward: -180 -> 0 (flipped page coming back) or...
+  // VISUAL LOGIC:
+  // Forward: Page (visible) rotates from 0 to -170?
+  // Backward: Page (invisible, on left) rotates from -180 to 0.
+  
+  let angle = 0;
+  if (direction === 'forward') {
+    angle = -180 * progress; 
+  } else {
+    // Start at -180 (flat left), go to 0 (flat right)
+    angle = -180 + (180 * progress);
+  }
+  
+  // Visual tweaks based on angle (shadows, brightness)
+  const isMobile = screenSize.value.isMobile;
+  
+  G.set(flipPage, {
+    rotateY: angle,
+    transformOrigin: spiralBindingOrigin,
+    force3D: true,
+    transformStyle: isMobile ? 'flat' : 'preserve-3d',
+    backfaceVisibility: 'hidden',
+    zIndex: 50
+  });
+  
+  // Shadow/Gloss effects
+  const shadow = flipPage.querySelector('.flip-shadow');
+  const gloss = flipPage.querySelector('.flip-gloss');
+  
+  // Shadow intensity peaks at 90deg (progress ~0.5)
+  const peak = 1 - Math.abs(progress - 0.5) * 2; // 0 -> 1 -> 0
+  
+  if (shadow) G.set(shadow, { opacity: peak * 0.5 });
+  if (gloss) G.set(gloss, { opacity: peak * 0.3 });
+}
+
+function completeDrag(finish: boolean) {
+  const dir = drag.value.direction;
+  const flipPage = getFlipElement();
+  
+  if (!flipPage) {
+    isFlipping.value = false;
+    return;
+  }
+  
+  const G = (gsap as any);
+  
+  // Determine target angle
+  // Forward finish: -180. Revert: 0.
+  // Backward finish: 0. Revert: -180.
+  
+  let targetAngle = 0;
+  
+  if (dir === 'forward') {
+    targetAngle = finish ? -180 : 0;
+  } else {
+    targetAngle = finish ? 0 : -180;
+  }
+  
+  // Animate to target
+  G.to(flipPage, {
+    rotateY: targetAngle,
+    duration: 0.4,
+    ease: 'power2.out', // Physics feel
+    onComplete: () => {
+      if (finish) {
+        // Update index
+        if (dir === 'forward') {
+          currentPageIndex.value++;
+        } else {
+          currentPageIndex.value--;
+        }
+      }
+      
+      // Reset state
+      nextTick(() => {
+         isFlipping.value = false;
+         // Reset scroll
+         if (finish) {
+           mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+           desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+         }
+         measureAndApplySpiralMetrics();
+      });
+    }
+  });
+}
+
+function getFlipElement() {
+  const container = desktopFlipRef.value || mobileFlipRef.value;
+  return container?.querySelector('.flip-page') as HTMLElement | null;
+}
+
+// --- Navigation Methods ---
 
 const nextPage = async () => {
   if (currentPageIndex.value >= props.pages.length - 1 || isFlipping.value) return;
-  
   const targetIndex = currentPageIndex.value + 1;
-  
   showPageChangeIndicator('forward', targetIndex);
   await animatePageTurn('forward');
 };
 
 const prevPage = async () => {
   if (currentPageIndex.value <= 0 || isFlipping.value) return;
-  
   const targetIndex = currentPageIndex.value - 1;
-  
   showPageChangeIndicator('backward', targetIndex);
   await animatePageTurn('backward');
 };
 
-// Quick jump page turn: fast spiral-bound notebook flip
-const animateQuickJump = (direction: 'forward' | 'backward', targetIndex: number): Promise<void> => {
+const animatePageTurn = (direction: 'forward' | 'backward', duration = 0.6): Promise<void> => {
   return new Promise((resolve) => {
     isFlipping.value = true;
     flipDirection.value = direction;
 
-    // Show the flip of the current page
-    flipContent.value = props.pages[currentPageIndex.value] as Page;
+    if (direction === 'forward') {
+       flipContent.value = props.pages[currentPageIndex.value];
+    } else {
+       flipContent.value = props.pages[currentPageIndex.value - 1];
+    }
 
     nextTick(() => {
-      const container = desktopFlipRef.value || mobileFlipRef.value;
-      if (!container) {
-        currentPageIndex.value = targetIndex;
-        isFlipping.value = false;
-        resolve();
-        return;
-      }
-
-      const flipPage = container.querySelector('.flip-page') as HTMLElement | null;
+      const flipPage = getFlipElement();
       if (!flipPage) {
-        currentPageIndex.value = targetIndex;
+        // Fallback
+        if (direction === 'forward') currentPageIndex.value++; else currentPageIndex.value--;
         isFlipping.value = false;
         resolve();
         return;
       }
-
-  const G = (gsap as any);
-  // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
-  const spiralBindingOrigin = `0px center`;
-      
-      // Use simpler transforms on mobile to prevent blinking
-      if (screenSize.value.isMobile) {
-        G.set(flipPage, { 
-          rotateY: 0, 
-          transformOrigin: spiralBindingOrigin, 
-          transformStyle: 'flat', 
-          backfaceVisibility: 'hidden',
-          boxShadow: 'none',
-          filter: 'brightness(1)',
-          zIndex: 30
-        });
-      } else {
-        G.set(flipPage, { 
-          rotateY: 0, 
-          rotateX: 0,
-          transformOrigin: spiralBindingOrigin, 
-          transformStyle: 'preserve-3d', 
-          perspective: 1000, 
-          backfaceVisibility: 'hidden',
-          boxShadow: 'none',
-          filter: 'brightness(1)',
-          zIndex: 30
-        });
-      }
-
-      const tl = G.timeline({
-        onComplete: () => {
-          currentPageIndex.value = targetIndex;
-          isFlipping.value = false;
-          nextTick(() => {
-            mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-            desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-            // Recompute spiral metrics after page content/layout changes
-            measureAndApplySpiralMetrics();
-          });
-          resolve();
-        }
-      });
-
-      // Simple, fast animation for quick jumps
-      if (direction === 'forward') {
-        tl.to(flipPage, {
-          rotateY: -180,
-          duration: 0.25,
-          ease: 'power2.inOut'
-        });
-      } else {
-        tl.fromTo(flipPage, {
-          rotateY: 180
-        }, {
-          rotateY: 0,
-          duration: 0.25,
-          ease: 'power2.inOut'
-        });
-      }
-    });
-  });
-};
-
-const animatePageTurn = (direction: 'forward' | 'backward'): Promise<void> => {
-  return new Promise((resolve) => {
-    isFlipping.value = true;
-    flipDirection.value = direction;
-
-    const targetIndex = direction === 'forward'
-      ? currentPageIndex.value + 1
-      : currentPageIndex.value - 1;
-
-    // Set the correct content for the flip overlay - show current page during flip
-    flipContent.value = props.pages[currentPageIndex.value] as Page;
-
-    // Pre-load the target page content to prevent white flash
-    const targetPage = props.pages[targetIndex] as Page;
-
-    nextTick(() => {
-      const container = desktopFlipRef.value || mobileFlipRef.value;
-      if (!container) {
-        currentPageIndex.value = targetIndex;
-        isFlipping.value = false;
-        resolve();
-        return;
-      }
-      
-      const flipPage = container.querySelector('.flip-page') as HTMLElement | null;
-      if (!flipPage) {
-        currentPageIndex.value = targetIndex;
-        isFlipping.value = false;
-        resolve();
-        return;
-      }
-
-      const shadow = flipPage.querySelector('.flip-shadow') as HTMLElement | null;
-      const gloss = flipPage.querySelector('.flip-gloss') as HTMLElement | null;
-      const edge = flipPage.querySelector('.page-edge') as HTMLElement | null;
 
       const G = (gsap as any);
+      const spiralBindingOrigin = '0px center';
+      const isMobile = screenSize.value.isMobile;
       
-      // Hinge at the overlay's left edge, which is aligned to the spiral's right edge
-      const spiralBindingOrigin = `0px center`;
+      // Initial State
+      let startAngle = direction === 'forward' ? 0 : -180;
+      let endAngle = direction === 'forward' ? -180 : 0;
       
-      // Use simplified animation on mobile to prevent blinking
-      const isMobileDevice = screenSize.value.isMobile;
-      
-      // Prepare the page for flip
-      G.set(flipPage, { 
-        rotateY: 0,
-        rotateX: 0,
-        rotateZ: 0,
-        transformOrigin: spiralBindingOrigin,
-        transformStyle: isMobileDevice ? 'flat' : 'preserve-3d',
-        perspective: isMobileDevice ? 'none' : 1200,
-        backfaceVisibility: 'hidden',
-        boxShadow: 'none',
-        filter: 'brightness(1)',
-        zIndex: 30,
-        opacity: 1,
-        visibility: 'visible',
-        willChange: 'transform'
+      G.set(flipPage, {
+         rotateY: startAngle,
+         transformOrigin: spiralBindingOrigin,
+         transformStyle: isMobile ? 'flat' : 'preserve-3d',
+         backfaceVisibility: 'hidden',
+         zIndex: 50,
+         visibility: 'visible'
       });
       
-      // Reset effect elements
-      if (shadow) G.set(shadow, { opacity: 0 });
-      if (gloss) G.set(gloss, { opacity: 0 });
-      if (edge) G.set(edge, { opacity: 0 });
-
-      // Create simplified timeline
-      const tl = G.timeline({
+      G.to(flipPage, {
+        rotateY: endAngle,
+        duration: duration,
+        ease: 'power1.inOut',
         onComplete: () => {
-          // Update page index smoothly
-          currentPageIndex.value = targetIndex;
-          isFlipping.value = false;
-          nextTick(() => {
-            // Smooth scroll reset without jarring
-            const pageRefs = [mobilePageRef.value, desktopPageRef.value];
-            pageRefs.forEach(ref => {
-              if (ref) {
-                ref.scrollTo({ top: 0, behavior: 'auto' });
-              }
-            });
-            // Recompute spiral metrics after page content/layout changes
-            measureAndApplySpiralMetrics();
-          });
-          resolve();
+           if (direction === 'forward') currentPageIndex.value++; else currentPageIndex.value--;
+           isFlipping.value = false;
+           nextTick(() => {
+             mobilePageRef.value?.scrollTo({ top: 0 });
+             desktopPageRef.value?.scrollTo({ top: 0 });
+             measureAndApplySpiralMetrics();
+             resolve();
+           });
         }
       });
-      
-      // Simple, optimized flip animation
-      if (isMobileDevice) {
-        // Ultra-simple 2D flip for mobile to prevent blinking
-        if (direction === 'forward') {
-          tl.to(flipPage, {
-            rotateY: -180,
-            duration: 0.3,
-            ease: 'power2.inOut'
-          });
-        } else {
-          tl.fromTo(flipPage, {
-            rotateY: 180
-          }, {
-            rotateY: 0,
-            duration: 0.3,
-            ease: 'power2.inOut'
-          });
-        }
-      } else {
-        // Simple 3D flip for desktop
-        if (direction === 'forward') {
-          tl.to(flipPage, {
-            rotateY: -180,
-            duration: 0.4,
-            ease: 'power2.inOut'
-          });
-        } else {
-          tl.fromTo(flipPage, {
-            rotateY: 180
-          }, {
-            rotateY: 0,
-            duration: 0.4,
-            ease: 'power2.inOut'
-          });
-        }
-      }
     });
   });
 };
@@ -569,104 +591,104 @@ const goTo = async (index: number, opts?: { mode?: GoToMode }) => {
   const target = Math.max(0, Math.min(index, props.pages.length - 1));
   if (target === currentPageIndex.value) return;
   
-  // Play page transition sound if available and sound is enabled (unless instant mode)
   const mode: GoToMode = opts?.mode ?? 'step';
-  
   const direction: 'forward' | 'backward' = target > currentPageIndex.value ? 'forward' : 'backward';
   showPageChangeIndicator(direction, target);
 
   if (mode === 'instant') {
     currentPageIndex.value = target;
     nextTick(() => {
-      mobilePageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
-      desktopPageRef.value?.scrollTo({ top: 0, behavior: 'auto' });
+      mobilePageRef.value?.scrollTo({ top: 0 });
+      desktopPageRef.value?.scrollTo({ top: 0 });
     });
     return;
   }
 
+  // Fast animation for jump
   if (mode === 'fast') {
-    await animateQuickJump(direction, target);
-    return;
+     // Just do one fast flip to represent the jump? 
+     // Or just jump index and animate the last arrival?
+     // Let's keep it simple: simpler animation logic
+     
+     // Correct State for "Flip to this page"
+     // If going forward to Index 5 (from 0):
+     // Show Page 0 flipping? No, that's slow.
+     // Maybe just fade?
+     // User wants "Physical". Let's do a fast flip of the CURRENT page to the TARGET page content?
+     // Cheating physics slightly for UX speed.
+     
+     isFlipping.value = true;
+     flipDirection.value = direction;
+     
+     // Logic: We flip the *Current* page out. When it lands, we are at Target.
+     flipContent.value = props.pages[currentPageIndex.value]; // The one leaving
+     
+     const flipPage = getFlipElement();
+     // ... animation logic similar to animatePageTurn but faster ...
+     // For time saving, reuse animatePageTurn with speed
+     await animatePageTurn(direction, 0.3);
+     // Force index update to target if it was just +/- 1 (animatePageTurn does +/- 1)
+     // Since this is a jump, we need to handle valid index
+     currentPageIndex.value = target; 
+     return;
   }
-
-  // Default: step-by-step flipping
+  
+  // Step mode
   while (currentPageIndex.value !== target) {
-    if (isFlipping.value) {
-      await new Promise(r => setTimeout(r, 10));
-      continue;
-    }
     if (direction === 'forward' && currentPageIndex.value >= props.pages.length - 1) break;
     if (direction === 'backward' && currentPageIndex.value <= 0) break;
-    await animatePageTurn(direction);
-    await new Promise(r => setTimeout(r, 50));
+    await animatePageTurn(direction, 0.4);
+    await new Promise(r => setTimeout(r, 20));
   }
 };
 
-// Keyboard navigation
+// Keyboard & Wheel
 const handleKeydown = (e: KeyboardEvent) => {
-  if (e.key === 'ArrowRight' || e.key === ' ') {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextPage(); }
+  if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); prevPage(); }
+  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
+  if (e.key === 'End') { e.preventDefault(); goTo(props.pages.length - 1); }
+};
+
+const handleWheel = (e: WheelEvent) => {
+  if (e.ctrlKey && screenSize.value.isDesktop && !isFlipping.value && !drag.value.active) {
     e.preventDefault();
-    nextPage();
-  }
-  if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
-    e.preventDefault();
-    prevPage();
-  }
-  if (e.key === 'Home') {
-    e.preventDefault();
-    goTo(0);
-  }
-  if (e.key === 'End') {
-    e.preventDefault();
-    goTo(props.pages.length - 1);
+    if (e.deltaY > 0) nextPage();
+    else if (e.deltaY < 0) prevPage();
   }
 };
 
-// Mouse wheel navigation (disabled auto page change, only for manual navigation)
-const handleWheel = (e: WheelEvent) => {
-  // Allow normal scrolling within page content
-  // Only prevent default wheel behavior when explicitly navigating with Ctrl+wheel
-  if (e.ctrlKey && screenSize.value.isDesktop && !isFlipping.value) {
-    e.preventDefault();
-    
-    if (e.deltaY > 0) {
-      nextPage();
-    } else if (e.deltaY < 0) {
-      prevPage();
-    }
-  }
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement;
+  const isNearBottom = (target.scrollTop + target.clientHeight) / target.scrollHeight >= 0.95;
+  showScrollNextIndicator.value = isNearBottom && currentPageIndex.value < props.pages.length - 1 && !isFlipping.value;
 };
 
 onMounted(() => {
-  // Event listeners
   window.addEventListener('resize', updateScreenSize);
   window.addEventListener('orientationchange', updateScreenSize);
-
+  
   const container = bookContainerRef.value;
   if (container) {
-    // Make sure container can capture keyboard events
     container.addEventListener('keydown', handleKeydown);
-    
-    // Allow Ctrl+Wheel navigation on desktop only
     container.addEventListener('wheel', handleWheel as any, { passive: false });
     
-    // Enable smooth vertical scrolling
-    container.style.touchAction = 'pan-y';
-
-    // Optionally focus the container so Arrow keys work immediately
+    // Add Global Pointer events for drag continuation outside container
+    // Actually setPointerCapture handles this on the element.
+    // So we just need listeners on the element.
+    
+    // HOWEVER: We want to catch the "Down" on the book, but "Move/Up" might happen anywhere if capture fails?
+    // standard is to attach move/up to window if not using capture. Capture is better.
+    
+    container.style.touchAction = 'pan-y'; // Allow vertical scroll, handle horizontal in JS
     container.focus();
   }
-  
-  // Initial screen size update
   updateScreenSize();
-  // Initial measurement after first render
-  nextTick(() => measureAndApplySpiralMetrics());
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', updateScreenSize);
   window.removeEventListener('orientationchange', updateScreenSize);
-
   const container = bookContainerRef.value;
   if (container) {
     container.removeEventListener('keydown', handleKeydown);
@@ -674,14 +696,7 @@ onUnmounted(() => {
   }
 });
 
-// Expose methods for parent component
-defineExpose({
-  goTo,
-  nextPage,
-  prevPage,
-  screenSize: screenSize.value,
-  currentPageIndex
-});
+defineExpose({ goTo, nextPage, prevPage, screenSize: screenSize.value, currentPageIndex });
 </script>
 
 <style scoped>
@@ -796,6 +811,7 @@ defineExpose({
   /* Smooth scrolling */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 /* Enable 3D transforms only on larger screens */
@@ -953,6 +969,7 @@ defineExpose({
   /* Smooth scrolling */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .page-content::-webkit-scrollbar {

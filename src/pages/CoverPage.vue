@@ -45,14 +45,7 @@
         </div>
 
         <!-- Magical Cursor Effect (Desktop Only) -->
-        <div 
-          v-if="!isMobile"
-          ref="cursorEffect" 
-          class="magical-cursor-trail pointer-events-none fixed z-50"
-          :style="cursorStyle"
-        >
-          <div class="cursor-particle">✨</div>
-        </div>
+        <MagicalCursor v-if="!isMobile" />
         
         <!-- Advanced Mystical Energy Portal -->
         <CoverPortal
@@ -79,6 +72,7 @@ import CoverHeader from '../components/cover/CoverHeader.vue';
 // Lazy load heavy components for better initial performance
 const CoverPortal = defineAsyncComponent(() => import('../components/cover/CoverPortal.vue'));
 const SoundToggle = defineAsyncComponent(() => import('../components/cover/SoundToggle.vue'));
+const MagicalCursor = defineAsyncComponent(() => import('../components/cover/MagicalCursor.vue'));
 import { useMagicSound } from '../composables/useMagicSound';
 import themeConfig from '../data/theme.json';
 
@@ -126,14 +120,6 @@ const isMobile = ref(false);
 
 // Optimized cursor effect state - only track when needed
 const cursorPosition = ref({ x: 0, y: 0 });
-const cursorTrackingActive = ref(false);
-
-// Simplified cursor tracking
-const cursorStyle = ref({
-  left: '0px',
-  top: '0px',
-  opacity: '0'
-});
 
 // Enhanced visual effects (optimized)
 const particleIntensity = ref(1);
@@ -171,24 +157,10 @@ const playSparkleHover = (index: number) => {
   playSparkleSound(800 + (index * 100)); // Different pitch per sparkle
 };
 
-// Optimized cursor tracking with throttling
-let cursorThrottle: number | null = null;
+// Cursor tracking logic moved to MagicalCursor component
 const updateCursorPosition = (event: MouseEvent) => {
-  if (cursorThrottle) return; // Throttle to 16ms (~60fps)
-  
-  cursorThrottle = window.setTimeout(() => {
-    cursorPosition.value = { 
-      x: event.clientX, 
-      y: event.clientY 
-    };
-    
-    cursorStyle.value = {
-      left: (event.clientX - 10) + 'px',
-      top: (event.clientY - 10) + 'px',
-      opacity: isMagicActive.value ? '1' : '0.5'
-    };
-    cursorThrottle = null;
-  }, 16);
+   // Keep basic tracking for interactions if needed, else remove
+   cursorPosition.value = { x: event.clientX, y: event.clientY };
 };
 
 // Simplified device detection
@@ -199,18 +171,21 @@ const detectDevice = () => {
     isMobile.value = newIsMobile;
     
     // Toggle cursor tracking based on device
-    if (newIsMobile && cursorTrackingActive.value) {
+    if (newIsMobile) {
       document.removeEventListener('mousemove', updateCursorPosition);
-      cursorTrackingActive.value = false;
-    } else if (!newIsMobile && !cursorTrackingActive.value) {
+    } else {
       document.addEventListener('mousemove', updateCursorPosition, { passive: true });
-      cursorTrackingActive.value = true;
     }
   }
 };
 
-// Optimized desktop cursor effect with reduced particle count
+// Reset desktop cursor effect (visuals now handled by MagicalCursor)
 const createDesktopCursorEffect = (x: number, y: number) => {
+  // We can keep this for the "Click Burst" effect if desired
+  // Or delegate it to the new component via an event bus? 
+  // For now, let's keep the click burst logic simple here or remove if covered.
+  // The new component handles trails, but maybe not the click explosion.
+  // Let's keep a simplified version for click feedback.
   if (!magicConfig.value.desktopEffectEnabled || isMobile.value) return;
   
   const container = document.body;
@@ -225,8 +200,8 @@ const createDesktopCursorEffect = (x: number, y: number) => {
     transform: translate(-50%, -50%);
   `;
   
-  // Reduced particle count for better performance
-  for (let i = 0; i < 6; i++) { // Reduced from 12 to 6
+  // Burst particles
+  for (let i = 0; i < 6; i++) {
     const particle = document.createElement('div');
     particle.innerHTML = sparkleSymbols.value[i % sparkleSymbols.value.length];
     particle.style.cssText = `
@@ -234,20 +209,15 @@ const createDesktopCursorEffect = (x: number, y: number) => {
       font-size: 16px;
       color: #9333ea;
       filter: drop-shadow(0 0 8px rgba(147, 51, 234, 0.8));
-      animation: desktopMagicParticle 3000ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      animation: desktopMagicParticle 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
       --angle: ${i * 60}deg;
       --distance: ${Math.random() * 80 + 40}px;
     `;
-    
     effectContainer.appendChild(particle);
   }
   
   container.appendChild(effectContainer);
-  
-  // Cleanup with shorter duration
-  setTimeout(() => {
-    effectContainer.remove();
-  }, 3000); // Reduced from 5000ms
+  setTimeout(() => effectContainer.remove(), 1000);
 };
 
 // Optimized progressive magic enhancement with gamified audio
@@ -380,10 +350,9 @@ onMounted(() => {
   // Initialize audio context early for better user experience
   initializeAudioContext();
   
-  // Add throttled cursor tracking for desktop only
+  // Add tracking for desktop only (for click effects)
   if (!isMobile.value) {
     document.addEventListener('mousemove', updateCursorPosition, { passive: true });
-    cursorTrackingActive.value = true;
   }
   
   // Optimized resize handler with debouncing
@@ -396,12 +365,11 @@ onMounted(() => {
   
   // Cleanup function
   return () => {
-    if (cursorTrackingActive.value) {
+    if (!isMobile.value) {
       document.removeEventListener('mousemove', updateCursorPosition);
     }
     window.removeEventListener('resize', handleResize);
     if (resizeTimeout) clearTimeout(resizeTimeout);
-    if (cursorThrottle) clearTimeout(cursorThrottle);
     if (magicThrottle) clearTimeout(magicThrottle);
   };
 });

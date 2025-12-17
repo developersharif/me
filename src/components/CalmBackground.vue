@@ -1,49 +1,42 @@
 <template>
-  <div class="calm-background hidden md:block">
-    <!-- Animated gradient orbs -->
-    <div class="gradient-orb orb-1"></div>
-    <div class="gradient-orb orb-2"></div>
-    <div class="gradient-orb orb-3"></div>
-    <div class="gradient-orb orb-4"></div>
+  <div class="calm-background hidden md:block" aria-hidden="true">
+    <!-- Image Container with Parallax-like breathing -->
+    <div class="image-container">
+      <img 
+        src="/assets/images/my-workspace.jpeg" 
+        alt="Creative Workspace" 
+        class="workspace-image"
+      />
+      <!-- Cinematic Overlay -->
+      <div class="overlay gradient-overlay"></div>
+      <div class="overlay noise-overlay"></div>
+      <div class="overlay vignette-overlay"></div>
+    </div>
     
-    <!-- Floating particles -->
+    <!-- Ambient particles for depth -->
     <div class="particles-container">
-      <div v-for="n in 12" :key="n" class="particle" :style="getParticleStyle(n)"></div>
+      <div v-for="n in 8" :key="n" class="particle" :style="getParticleStyle(n)"></div>
     </div>
-    
-    <!-- Subtle geometric patterns -->
-    <div class="geometric-pattern">
-      <svg viewBox="0 0 200 200" class="pattern-svg">
-        <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
-    </div>
-    
-    <!-- Ambient light effects -->
-    <div class="ambient-light light-1"></div>
-    <div class="ambient-light light-2"></div>
-    <div class="ambient-light light-3"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Generate random styles for particles
+// Minimal particle logic for subtle ambience
 const getParticleStyle = (index: number) => {
-  const size = Math.random() * 4 + 2 // Larger particles: 2-6px
+  const size = Math.random() * 3 + 1
   const left = Math.random() * 100
-  const animationDelay = Math.random() * 5 // Shorter delay spread
-  const animationDuration = Math.random() * 10 + 8 // Faster: 8-18s
+  const top = Math.random() * 100
+  const delay = Math.random() * -20
+  const duration = Math.random() * 20 + 20
   
   return {
     width: `${size}px`,
     height: `${size}px`,
     left: `${left}%`,
-    animationDelay: `${animationDelay}s`,
-    animationDuration: `${animationDuration}s`
+    top: `${top}%`,
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`,
+    opacity: Math.random() * 0.3 + 0.1
   }
 }
 </script>
@@ -51,243 +44,84 @@ const getParticleStyle = (index: number) => {
 <style scoped>
 .calm-background {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   z-index: -10;
   overflow: hidden;
+  background-color: #050505;
+}
+
+.image-container {
+  position: absolute;
+  inset: -5%; /* Slightly larger to allow movement */
+  width: 110%;
+  height: 110%;
+  animation: slow-breathe 60s ease-in-out infinite alternate;
+}
+
+.workspace-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.8) contrast(1.1);
+  opacity: 0.4; /* dim it down significantly */
+}
+
+/* Overlays for readability and polish */
+.overlay {
+  position: absolute;
+  inset: 0;
+}
+
+.gradient-overlay {
   background: linear-gradient(
     135deg,
-    #0f0f23 0%,
-    #1a1a3a 25%,
-    #2d1b69 50%,
-    #1a1a3a 75%,
-    #0f0f23 100%
+    rgba(5, 5, 10, 0.9) 0%,
+    rgba(10, 10, 20, 0.7) 40%,
+    rgba(10, 10, 20, 0.7) 60%,
+    rgba(5, 5, 10, 0.9) 100%
   );
-  animation: breathe 15s ease-in-out infinite;
+  mix-blend-mode: multiply;
+}
+
+.noise-overlay {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: overlay;
   pointer-events: none;
 }
 
-/* Animated gradient orbs */
-.gradient-orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.6;
-  animation: gentleFloat 8s ease-in-out infinite;
-  transition: all 0.8s ease;
+.vignette-overlay {
+  background: radial-gradient(
+    circle at center,
+    transparent 20%,
+    rgba(0, 0, 0, 0.6) 80%,
+    rgba(0, 0, 0, 0.9) 100%
+  );
 }
 
-.orb-1 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(147, 51, 234, 0.3) 0%, transparent 70%);
-  top: 10%;
-  left: 20%;
-  animation-delay: 0s;
-  animation-duration: 12s;
-}
-
-.orb-2 {
-  width: 250px;
-  height: 250px;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-  top: 60%;
-  right: 15%;
-  animation-delay: -3s;
-  animation-duration: 15s;
-}
-
-.orb-3 {
-  width: 200px;
-  height: 200px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, transparent 70%);
-  bottom: 20%;
-  left: 10%;
-  animation-delay: -6s;
-  animation-duration: 14s;
-}
-
-.orb-4 {
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle, rgba(245, 158, 11, 0.25) 0%, transparent 70%);
-  top: 30%;
-  right: 40%;
-  animation-delay: -9s;
-  animation-duration: 11s;
-}
-
-/* Floating particles */
 .particles-container {
   position: absolute;
-  width: 100%;
-  height: 100%;
+  inset: 0;
+  pointer-events: none;
 }
 
 .particle {
   position: absolute;
-  background: rgba(255, 255, 255, 0.1);
+  background: white;
   border-radius: 50%;
-  animation: gentleParticleFloat linear infinite;
+  filter: blur(1px);
+  animation: float linear infinite;
 }
 
-/* Geometric pattern overlay */
-.geometric-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.3;
+@keyframes slow-breathe {
+  0% { transform: scale(1) translate(0, 0); }
+  100% { transform: scale(1.05) translate(-1%, -1%); }
 }
 
-.pattern-svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* Ambient light effects */
-.ambient-light {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(120px);
-  opacity: 0.08;
-  animation: gentlePulse 12s ease-in-out infinite;
-}
-
-.light-1 {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, transparent 70%);
-  top: -10%;
-  left: -10%;
-  animation-delay: 0s;
-  animation-duration: 15s;
-}
-
-.light-2 {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(139, 69, 19, 0.25) 0%, transparent 70%);
-  bottom: -10%;
-  right: -10%;
-  animation-delay: -5s;
-  animation-duration: 18s;
-}
-
-.light-3 {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(75, 85, 99, 0.2) 0%, transparent 70%);
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  animation-delay: -8s;
-  animation-duration: 20s;
-}
-
-/* Animations */
-@keyframes gentleFloat {
-  0%, 100% {
-    transform: translateY(0px) translateX(0px) scale(1);
-  }
-  25% {
-    transform: translateY(-15px) translateX(10px) scale(1.03);
-  }
-  50% {
-    transform: translateY(-8px) translateX(-12px) scale(0.97);
-  }
-  75% {
-    transform: translateY(-18px) translateX(6px) scale(1.01);
-  }
-}
-
-@keyframes gentleParticleFloat {
-  0% {
-    transform: translateY(100vh) translateX(0px) rotate(0deg);
-    opacity: 0;
-  }
-  5% {
-    opacity: 0.6;
-  }
-  95% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(-100px) translateX(20px) rotate(180deg);
-    opacity: 0;
-  }
-}
-
-@keyframes gentlePulse {
-  0%, 100% {
-    opacity: 0.08;
-    transform: scale(1);
-  }
-  33% {
-    opacity: 0.12;
-    transform: scale(1.03);
-  }
-  66% {
-    opacity: 0.06;
-    transform: scale(0.97);
-  }
-}
-
-@keyframes breathe {
-  0%, 100% {
-    background: linear-gradient(
-      135deg,
-      #0f0f23 0%,
-      #1a1a3a 25%,
-      #2d1b69 50%,
-      #1a1a3a 75%,
-      #0f0f23 100%
-    );
-  }
-  50% {
-    background: linear-gradient(
-      135deg,
-      #0f0f23 0%,
-      #1e1e42 25%,
-      #341d75 50%,
-      #1e1e42 75%,
-      #0f0f23 100%
-    );
-  }
-}
-
-/* Tablet and smaller desktop adjustments */
-@media (min-width: 768px) and (max-width: 1024px) {
-  .gradient-orb {
-    filter: blur(40px);
-    opacity: 0.3;
-  }
-  
-  .orb-1, .orb-2 {
-    width: 200px;
-    height: 200px;
-  }
-  
-  .orb-3, .orb-4 {
-    width: 150px;
-    height: 150px;
-  }
-  
-  .ambient-light {
-    filter: blur(60px);
-  }
-}
-
-/* Performance optimizations for reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .gradient-orb,
-  .particle,
-  .ambient-light {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-  }
+@keyframes float {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  20% { opacity: var(--opacity, 0.3); }
+  80% { opacity: var(--opacity, 0.3); }
+  100% { transform: translateY(-100px) translateX(20px); opacity: 0; }
 }
 </style>
