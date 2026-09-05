@@ -1,50 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}'
-  ],
+  content: ['./index.html', './src/**/*.{vue,js,ts}'],
   theme: {
     extend: {
-      colors: {
-        accent: {
-          DEFAULT: '#8b5cf6',
-          50: '#f5f3ff',
-          100: '#ede9fe',
-          200: '#ddd6fe',
-          300: '#c4b5fd',
-          400: '#a78bfa',
-          500: '#8b5cf6',
-          600: '#7c3aed',
-          700: '#6d28d9',
-          800: '#5b21b6',
-          900: '#4c1d95'
-        }
-      },
       fontFamily: {
-        sans: [
-          'Inter',
-          'ui-sans-serif',
-          'system-ui',
-          'Segoe UI',
-          'Roboto',
-          'Helvetica',
-          'Arial',
-          'Apple Color Emoji',
-          'Segoe UI Emoji'
-        ],
-        mono: [
-          'JetBrains Mono',
-          'ui-monospace',
-          'SFMono-Regular',
-          'Menlo',
-          'Monaco',
-          'Consolas',
-          'Liberation Mono',
-          'Courier New'
-        ]
-      }
-    }
+        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['Instrument Sans', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
+      },
+      colors: {
+        paper: '#F3EEE4',
+        ink: '#0F0E0C',
+        vermilion: '#FF4F1F',
+      },
+    },
   },
-  plugins: []
-}
+  corePlugins: { preflight: false },
+  plugins: [],
+};

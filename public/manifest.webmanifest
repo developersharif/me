@@ -1,11 +1,9 @@
 {
-  "name": "Fullstack Engineer Portfolio",
-  "short_name": "Portfolio",
+  "name": "Sharif — Fullstack Engineer & Toolmaker",
+  "short_name": "Sharif",
   "start_url": "/me/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
-  "icons": [
-    { "src": "/me/favicon.svg", "sizes": "64x64", "type": "image/svg+xml" }
-  ]
+  "background_color": "#0f0e0c",
+  "theme_color": "#0f0e0c",
+  "icons": [{ "src": "/me/favicon.svg", "sizes": "64x64", "type": "image/svg+xml" }]
 }
