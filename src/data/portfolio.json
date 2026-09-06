@@ -243,9 +243,9 @@
     "heading": "Log.",
     "intro": "Roles and long-running projects, newest first.",
     "entries": [
-      { "title": "Software Engineer", "org": "Doplac.com", "period": "2024 — Present", "desc": "Building production systems and features while honing DX." },
+      { "title": "Software Engineer", "org": "Doplac.com", "period": "2024 — 2026", "desc": "Building production systems and features while honing DX." },
       { "title": "Founder", "org": "RealBrain", "period": "2023 — Present", "desc": "Delivering custom software and launching indie tools." },
-      { "title": "PineTalk.com", "org": "Indie product", "period": "2025 — Present", "desc": "WebRTC video chat with scalable signaling and TURN/STUN." },
+      { "title": "PineTalk.com", "org": "Indie product", "period": "2025 — 2026", "desc": "WebRTC video chat with scalable signaling and TURN/STUN." },
       { "title": "UBuilder", "org": "Private project", "period": "2024 — 2025", "desc": "Cross-platform packager for Python/PHP/Node apps (C/C++)." },
       { "title": "FriendsClub Rebuild", "org": "Community platform", "period": "2019 — 2020", "desc": "Social platform rebuilt in PHP & JavaScript." }
     ]
